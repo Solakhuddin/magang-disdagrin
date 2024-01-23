@@ -52,7 +52,21 @@ $row	= mysqli_fetch_assoc($profil);
     <!-- start header -->
     <?php include 'header.php';?>
     <!-- end header -->
-
+    <section id="inner-headline">
+      <div class="container">
+        <div class="row">
+          <div class="span12">
+            <div class="inner-heading">
+              <ul class="breadcrumb">
+                <li><a href="index.php">Beranda</a> <i class="icon-angle-right"></i></li>
+                <li class="active">Izin Usaha Pedagang Kaki Lima</li>
+              </ul>
+              <h2>Pengajuan Izin Usaha Pedagang Kaki Lima</h2>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
 
     <section id="content">
      
