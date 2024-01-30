@@ -561,14 +561,42 @@ include '../library/lock-menu.php';
 		echo '<script language="javascript">document.location="../library/Export/LapUser.php?v='.$Mode.'";</script>';
 		
 	}
+	
 	function NamaPerson($koneksi, $IDPerson){
-		$query = "SELECT NamaPerson FROM mstperson where IDPerson='$IDPerson'";
-		$conn = mysqli_query($koneksi, $query);
-		$result = mysqli_fetch_array($conn);
-		$NamaPerson = $result['NamaPerson'];
+		// Prepare the statement
+		$stmt = $koneksi->prepare("SELECT NamaPerson FROM mstperson WHERE IDPerson = ?");
 		
-		return $NamaPerson;
-	 }
+		// Bind parameter
+		$stmt->bind_param("s", $IDPerson);
+		
+		// Execute the statement
+		$stmt->execute();
+
+		// Bind result variables
+		$stmt->bind_result($NamaPerson);
+
+		// Fetch result
+		$fetchSuccess = $stmt->fetch();
+		
+		// Close statement
+		$stmt->close();
+		
+		if ($fetchSuccess) {
+			return $NamaPerson;
+		} else {
+			return "Nama tidak ditemukan"; // or any appropriate message
+		}
+	}
+
+	// script lama 
+	// function NamaPerson($koneksi, $IDPerson){
+	// 	$query = "SELECT NamaPerson FROM mstperson where IDPerson='$IDPerson'";
+	// 	$conn = mysqli_query($koneksi, $query);
+	// 	$result = mysqli_fetch_array($conn);
+	// 	$NamaPerson = $result['NamaPerson'];
+		
+	// 	return $NamaPerson;
+	// }
 	
 	?>
   </body>
