@@ -193,7 +193,7 @@ if(isset($_POST['ResetData'])){
 						  $cut_text = substr($row['IsiKonten'], 0, $num_char);
 						  $str_num = str_word_count($row['IsiKonten']);
 						  if($str_num >= 10){
-							if ($row['IsiKonten']{$num_char - 1} != ' ') { // jika huruf ke 50 (50 - 1 karena index dimulai dari 0) buka  spasi
+							if ($row['IsiKonten'][$num_char - 1] != ' ') { // jika huruf ke 50 (50 - 1 karena index dimulai dari 0) buka  spasi
 							$new_pos = strrpos($cut_text, ' '); // cari posisi spasi, pencarian dari huruf terakhir
 							$cut_text = substr($row['IsiKonten'], 0, $new_pos);
 							}
