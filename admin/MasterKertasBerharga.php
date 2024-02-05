@@ -8,48 +8,100 @@ include '../library/tgl-indo.php';
 
 $KodeKB = '';
 
-if(isset($_GET['aksi']) && base64_decode($_GET['aksi']) === "hapus"){
-	$id = base64_decode($_GET['id']);
-	$nm = base64_decode($_GET['nm']);
+if(isset($_GET['k']) && $_GET['k'] != ''){
+    $kodeKB = mysqli_real_escape_string($koneksi, base64_decode($_GET['k']));
+
+    $res_select = $koneksi->prepare("SELECT * FROM mstkertasberharga WHERE KodeKB = ?");
+
+    $res_select->bind_param("s", $kodeKB);
+
+    $res_select->execute();
+
+    $res_select->store_result(); // Storing the result for counting fetched rows
+
+    if($res_select->num_rows > 0){
+        $res_select->bind_result($KodeKB, $NamaKB, $Keterangan, $NilaiKB, $IsAktif); // Update with actual column names
+
+        $res_select->fetch(); // Fetching the first row
+
+        // Assuming you want to do something with the fetched data
+        $RowData = array('NamaKB' => $NamaKB, 'Keterangan' => $Keterangan, 'NilaiKB' => $NilaiKB, 'IsAktif' => $IsAktif);
+
+        // Free the result set
+        $res_select->free_result();
+    } else {
+        ?>
+        <script type="text/javascript">
+            swal({
+                title: "Error",
+                text: "Data tidak ditemukan",
+                icon: "error",
+                allowOutsideClick: false
+            }).then(function() {
+                location.href="MasterKertasBerharga.php";
+            });
+        </script>
+        <?php
+    }
+    $res_select->close(); // Close prepared statement
+} else {
+    ?>
+    <script type="text/javascript">
+        swal({
+            title: "Error",
+            text: "Terjadi kesalahan",
+            icon: "error",
+            allowOutsideClick: false
+        }).then(function() {
+            location.href="MasterKertasBerharga.php";
+        });
+    </script>
+    <?php
 }
 
-if(isset($_GET['k']) && $_GET['k'] != ''){
-	$KodeKB = mysqli_escape_string($koneksi, base64_decode($_GET['k']));
-	$sql = "SELECT * FROM mstkertasberharga WHERE KodeKB = '$KodeKB'";
-	$res_select = $koneksi->query($sql);
-	$RowData = array();
-	if($res_select){
-		if(mysqli_num_rows($res_select) < 1){
-			?>
-			<script type="text/javascript">
-				swal({
-					title: "Error", 
-					text: "Data tidak ditemukan", 
-					icon: "error", 
-					allowOutsideClick: false
-				}).then(function() {
-					location.href="MasterKertasBerharga.php";
-				});
-			</script>
-			<?php
-		}else{
-			$RowData = mysqli_fetch_assoc($res_select);
-		}
-	}else{
-		?>
-		<script type="text/javascript">
-			swal({
-				title: "Error", 
-				text: "Terjadi kesalahan", 
-				icon: "error", 
-				allowOutsideClick: false
-			}).then(function() {
-				location.href="MasterKertasBerharga.php";
-			});
-		</script>
-		<?php
-	}
-}
+// script lama
+// if(isset($_GET['aksi']) && base64_decode($_GET['aksi']) === "hapus"){
+// 	$id = base64_decode($_GET['id']);
+// 	$nm = base64_decode($_GET['nm']);
+// }
+
+// if(isset($_GET['k']) && $_GET['k'] != ''){
+// 	$KodeKB = mysqli_escape_string($koneksi, base64_decode($_GET['k']));
+// 	$sql = "SELECT * FROM mstkertasberharga WHERE KodeKB = '$KodeKB'";
+// 	$res_select = $koneksi->query($sql);
+// 	$RowData = array();
+// 	if($res_select){
+// 		if(mysqli_num_rows($res_select) < 1){
+// 			?>
+<!-- // 			<script type="text/javascript"> -->
+<!-- // 				swal({
+// 					title: "Error", 
+// 					text: "Data tidak ditemukan", 
+// 					icon: "error", 
+// 					allowOutsideClick: false
+// 				}).then(function() {
+// 					location.href="MasterKertasBerharga.php";
+// 				}); -->
+<!-- // 			</script> -->
+// 			<?php
+// 		}else{
+// 			$RowData = mysqli_fetch_assoc($res_select);
+// 		}
+// 	}else{
+// 		?>
+<!-- // 		<script type="text/javascript"> -->
+<!-- // 			swal({
+// 				title: "Error", 
+// 				text: "Terjadi kesalahan", 
+// 				icon: "error", 
+// 				allowOutsideClick: false
+// 			}).then(function() {
+// 				location.href="MasterKertasBerharga.php";
+// 			}); -->
+<!-- // 		</script> -->
+// 		<?php
+// 	}
+// }
 ?>
 <!DOCTYPE html>
 <html>
