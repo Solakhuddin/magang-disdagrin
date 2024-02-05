@@ -84,69 +84,151 @@ include "../library/config.php";
   </body>
 </html>
 <?php
-//porses submit login
 if(isset($_POST['submit'])){
-	if(empty($_POST['username']) || empty ($_POST ['password'])) {
-		// user and pass kosong
-		echo '<script type="text/javascript">
-			  sweetAlert({
-				title: "Maaf!",
-				text: " Username atau Password Kosong ",
-				type: "error"
-			  },
-			  function () {
-				window.location.href = "login.php";
-			  });
-			  </script>';
-		@session_destroy();
-	}else{		
-		// Variabel username dan password
-		$username = @stripslashes($_POST['username']);
-		$password = @stripslashes(base64_encode($_POST['password']));
-		$waktu    = time()+25200; //(GMT+7)
-		$expired  = 300000;
-		
-		// Mencegah MySQL injection dan XSS
-		$check_user = @htmlspecialchars(addslashes($username));
-		$check_pass = @htmlspecialchars(addslashes($password));
-		
-		// SQL query untuk memeriksa apakah user terdapat di database?
-		$query = "SELECT * FROM userlogin WHERE replace(UserName,' ','') = replace('{$check_user}',' ','') AND UserPsw = '{$check_pass}' AND IsAktif=b'1'";
-		//echo $query;exit();
-		$query = @mysqli_query($koneksi, $query);
-		echo $cari = @mysqli_num_rows($query); 
-			
-			if($cari === 0){
-				echo '<script type="text/javascript">
-					  sweetAlert({
-						title: "Login Gagal!",
-						text: " Username / Password Salah atau Pengguna Tidak Aktif ",
-						type: "error"
-					  },
-					  function () {
-						window.location.href = "login.php";
-					  });
-					  </script>';
-				@session_destroy();
-			}else{
-				$row = @mysqli_fetch_array($query);
-				//session
-				@$_SESSION['user_login']   = $row['UserName'];
-				@$_SESSION['user_pass']    = $row['UserPsw'];
-				@$_SESSION['timeout'] 	   = $waktu + $expired; // Membuat Sesi Waktu
-				
-				echo '<script type="text/javascript">
-				  sweetAlert({
-					title: "Login Sukses!",
-					text: " Anda Berhasil Login ",
-					type: "success"
-				  },
-				  function () {
-					window.location.href = "../admin_web/index.php";
-				  });
-				  </script>';
-			}
-			@mysqli_close(); // Menutup koneksi
-	}
+    if(empty($_POST['username']) || empty ($_POST['password'])) {
+        // Username or password is empty
+        echo '<script type="text/javascript">
+              sweetAlert({
+                title: "Maaf!",
+                text: " Username atau Password Kosong ",
+                type: "error"
+              },
+              function () {
+                window.location.href = "login.php";
+              });
+              </script>';
+        @session_destroy();
+    } else {        
+        // Establish database connection
+        $mysqli = new mysqli("localhost", "username", "password", "database");
+
+        // Check if the connection is successful
+        if($mysqli->connect_error) {
+            die("Connection failed: " . $mysqli->connect_error);
+        }
+
+        // Variables for username and password
+        $username = stripslashes($_POST['username']);
+        $password = base64_encode($_POST['password']);
+        $waktu = time() + 25200; //(GMT+7)
+        $expired = 300000;
+
+        // Prepare the SQL statement
+        $stmt = $mysqli->prepare("SELECT * FROM userlogin WHERE replace(UserName,' ','') = replace(?,' ','') AND UserPsw = ? AND IsAktif = b'1'");
+        $stmt->bind_param("ss", $username, $password);
+
+        // Execute the prepared statement
+        $stmt->execute();
+
+        // Get the result
+        $result = $stmt->get_result();
+
+        // Check the number of rows returned by the query
+        $cari = $result->num_rows;
+
+        if($cari === 0){
+            echo '<script type="text/javascript">
+                  sweetAlert({
+                    title: "Login Gagal!",
+                    text: " Username / Password Salah atau Pengguna Tidak Aktif ",
+                    type: "error"
+                  },
+                  function () {
+                    window.location.href = "login.php";
+                  });
+                  </script>';
+            @session_destroy();
+        } else {
+            $row = $result->fetch_assoc();
+            // Session variables
+            @$_SESSION['user_login'] = $row['UserName'];
+            @$_SESSION['user_pass'] = $row['UserPsw'];
+            @$_SESSION['timeout'] = $waktu + $expired; // Session timeout
+            
+            echo '<script type="text/javascript">
+              sweetAlert({
+                title: "Login Sukses!",
+                text: " Anda Berhasil Login ",
+                type: "success"
+              },
+              function () {
+                window.location.href = "../admin_web/index.php";
+              });
+              </script>';
+        }
+        
+        // Close the prepared statement
+        $stmt->close();
+        
+        // Close the database connection
+        $mysqli->close();
+    }
 }
+// script lama 
+//porses submit login
+// if(isset($_POST['submit'])){
+// 	if(empty($_POST['username']) || empty ($_POST ['password'])) {
+// 		// user and pass kosong
+// 		echo '<script type="text/javascript">
+// 			  sweetAlert({
+// 				title: "Maaf!",
+// 				text: " Username atau Password Kosong ",
+// 				type: "error"
+// 			  },
+// 			  function () {
+// 				window.location.href = "login.php";
+// 			  });
+// 			  </script>';
+// 		@session_destroy();
+// 	}else{		
+// 		// Variabel username dan password
+// 		$username = @stripslashes($_POST['username']);
+// 		$password = @stripslashes(base64_encode($_POST['password']));
+// 		$waktu    = time()+25200; //(GMT+7)
+// 		$expired  = 300000;
+		
+// 		// Mencegah MySQL injection dan XSS
+// 		$check_user = @htmlspecialchars(addslashes($username));
+// 		$check_pass = @htmlspecialchars(addslashes($password));
+		
+// 		// SQL query untuk memeriksa apakah user terdapat di database?
+// 		$query = "SELECT * FROM userlogin WHERE replace(UserName,' ','') = replace('{$check_user}',' ','') AND UserPsw = '{$check_pass}' AND IsAktif=b'1'";
+// 		//echo $query;exit();
+// 		$query = @mysqli_query($koneksi, $query);
+
+// 		echo $cari = @mysqli_num_rows($query); 
+			
+// 			if($cari === 0){
+// 				echo '<script type="text/javascript">
+// 					  sweetAlert({
+// 						title: "Login Gagal!",
+// 						text: " Username / Password Salah atau Pengguna Tidak Aktif ",
+// 						type: "error"
+// 					  },
+// 					  function () {
+// 						window.location.href = "login.php";
+// 					  });
+// 					  </script>';
+// 				@session_destroy();
+// 			}else{
+// 				$row = @mysqli_fetch_array($query);
+// 				//session
+// 				@$_SESSION['user_login']   = $row['UserName'];
+// 				@$_SESSION['user_pass']    = $row['UserPsw'];
+// 				@$_SESSION['timeout'] 	   = $waktu + $expired; // Membuat Sesi Waktu
+				
+// 				echo '<script type="text/javascript">
+// 				  sweetAlert({
+// 					title: "Login Sukses!",
+// 					text: " Anda Berhasil Login ",
+// 					type: "success"
+// 				  },
+// 				  function () {
+// 					window.location.href = "../admin_web/index.php";
+// 				  });
+// 				  </script>';
+// 			}
+// 			@mysqli_close(); // Menutup koneksi
+// 	}
+// }
 ?>
