@@ -72,8 +72,27 @@ $Page='Profil';
               <div class="row">
 			  <div class="span8 form-group field">
 				<?php 
-					$Visi = mysqli_query($koneksi,"SELECT * FROM kontenweb WHERE JenisKonten='Sambutan'");
-					$DataVisi = mysqli_fetch_assoc($Visi);
+          $query = "SELECT * FROM kontenweb WHERE JenisKonten = ?";
+          if ($stmt = $koneksi->prepare($query)) {
+              // Bind the parameter
+              $jenisKonten = 'Sambutan';
+              $stmt->bind_param("s", $jenisKonten);
+
+              // Execute the statement
+              $stmt->execute();
+
+              // Get the result
+              $result = $stmt->get_result();
+
+              // Fetch the data as an associative array
+              $dataVisi = $result->fetch_assoc();
+
+              // Close the statement
+              $stmt->close();
+          }
+          // script lama 
+					// $Visi = mysqli_query($koneksi,"SELECT * FROM kontenweb WHERE JenisKonten='Sambutan'");
+					// $DataVisi = mysqli_fetch_assoc($Visi);
 				?>
 				<img src="../images/Assets//<?php echo $DataVisi['Gambar1'];?>" class="img img-thumbnail img-responsive">
 				<p  style="text-align:justify;"><?php echo $DataVisi['IsiKonten']; ?></p>
