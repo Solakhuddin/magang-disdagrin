@@ -100,12 +100,10 @@ if(isset($_POST['submit'])){
               </script>';
         @session_destroy();
     } else {        
-        // Establish database connection
-        $mysqli = new mysqli("localhost", "username", "password", "database");
 
         // Check if the connection is successful
-        if($mysqli->connect_error) {
-            die("Connection failed: " . $mysqli->connect_error);
+        if($koneksi->connect_error) {
+            die("Connection failed: " . $koneksi->connect_error);
         }
 
         // Variables for username and password
@@ -115,7 +113,7 @@ if(isset($_POST['submit'])){
         $expired = 300000;
 
         // Prepare the SQL statement
-        $stmt = $mysqli->prepare("SELECT * FROM mstperson WHERE replace(UserName,' ','') = replace(?,' ','') AND Password = ? AND IsVerified=b'1'");
+        $stmt = $koneksi->prepare("SELECT * FROM mstperson WHERE replace(UserName,' ','') = replace(?,' ','') AND Password = ? AND IsVerified=b'1'");
         $stmt->bind_param("ss", $username, $password);
 
         // Execute the prepared statement
@@ -162,7 +160,7 @@ if(isset($_POST['submit'])){
         $stmt->close();
         
         // Close the database connection
-        $mysqli->close();
+        $koneksi->close();
     }
 }
 // script lama
