@@ -156,43 +156,93 @@ $Page='Kontak';
 
 </body>
 <?php 
-//======== Kirim Pesan ======//
-	@$nama 			= mysqli_real_escape_string($koneksi, htmlspecialchars($_POST['nama']));
-	@$email 		= mysqli_real_escape_string($koneksi, htmlspecialchars($_POST['email']));
-	@$subject 		= mysqli_real_escape_string($koneksi, htmlspecialchars($_POST['subject']));
-	@$message	 	= mysqli_real_escape_string($koneksi, htmlspecialchars($_POST['message']));
-	@$TglTransaksi 	= date('Y-m-d H:i:s');
+if(isset($_POST['submit'])){
+    // Check if the connection is successful
+    if($koneksi->connect_error) {
+        die("Connection failed: " . $koneksi->connect_error);
+    }
+
+    // Variables for form input
+    $nama = mysqli_real_escape_string($koneksi, htmlspecialchars($_POST['nama']));
+    $email = mysqli_real_escape_string($koneksi, htmlspecialchars($_POST['email']));
+    $subject = mysqli_real_escape_string($koneksi, htmlspecialchars($_POST['subject']));
+    $message = mysqli_real_escape_string($koneksi, htmlspecialchars($_POST['message']));
+    $TglTransaksi = date('Y-m-d H:i:s');
+
+    // Prepare the SQL statement
+    $stmt = $koneksi->prepare("INSERT INTO contact (KodeContact, TglTransaksi, Nama, Email, IsiPesan, IsDibaca, Subjek) VALUES (?, ?, ?, ?, ?, b'0', ?)");
+    $stmt->bind_param("ssssss", $kode_jadi_kontak, $TglTransaksi, $nama, $email, $message, $subject);
+
+    // Generate the contact code
+    $year = date('Y');
+    $getLastCodeQuery = $koneksi->query("SELECT RIGHT(KodeContact,7) AS kode FROM contact WHERE KodeContact LIKE '%$year%' ORDER BY KodeContact DESC LIMIT 1");
+
+    if ($getLastCodeQuery) {
+        $num = $getLastCodeQuery->num_rows;
+        if($num <> 0) {
+            $data = $getLastCodeQuery->fetch_array();
+            $kode = $data['kode'] + 1;
+        } else {
+            $kode = 1;
+        }
+    } else {
+        die("Error fetching last contact code: " . $koneksi->error);
+    }
+
+    // Generate the contact code
+    $bikin_kode = str_pad($kode, 7, "0", STR_PAD_LEFT);
+    $kode_jadi_kontak = "KONTAK-" . $year . "-" . $bikin_kode;
+
+    // Execute the prepared statement
+    $Simpan = $stmt->execute();
+
+    if($Simpan){
+        echo '<script language="javascript">alert("Pesan Berhasil Dikirim, Pesan akan dibalas melalui Email Anda!"); document.location="Kontak.php"; </script>';
+    } else {
+        echo '<script language="javascript">alert("Maaf, Pesan Gagal Dikirim!"); document.location="Kontak.php"; </script>';
+    }
+
+    // Close the prepared statement
+    $stmt->close();
+}
+
+// //======== Kirim Pesan ======//
+// 	@$nama 			= mysqli_real_escape_string($koneksi, htmlspecialchars($_POST['nama']));
+// 	@$email 		= mysqli_real_escape_string($koneksi, htmlspecialchars($_POST['email']));
+// 	@$subject 		= mysqli_real_escape_string($koneksi, htmlspecialchars($_POST['subject']));
+// 	@$message	 	= mysqli_real_escape_string($koneksi, htmlspecialchars($_POST['message']));
+// 	@$TglTransaksi 	= date('Y-m-d H:i:s');
 	
 	
 	
-	if(isset($_POST['submit'])){
+// 	if(isset($_POST['submit'])){
 		
 		
-		//membuat id user
-		$year	 = date('Y');
-		$sql 	 = mysqli_query($koneksi,'SELECT RIGHT(KodeContact,7) AS kode FROM contact WHERE KodeContact LIKE "%'.$year.'%" ORDER BY KodeContact DESC LIMIT 1');  
-		$num	 = mysqli_num_rows($sql);
+// 		//membuat id user
+// 		$year	 = date('Y');
+// 		$sql 	 = mysqli_query($koneksi,'SELECT RIGHT(KodeContact,7) AS kode FROM contact WHERE KodeContact LIKE "%'.$year.'%" ORDER BY KodeContact DESC LIMIT 1');  
+// 		$num	 = mysqli_num_rows($sql);
 		 
-		if($num <> 0) {
-			$data = mysqli_fetch_array($sql);
-			$kode = $data['kode'] + 1;
-		}else{
-			$kode = 1;
-		}
+// 		if($num <> 0) {
+// 			$data = mysqli_fetch_array($sql);
+// 			$kode = $data['kode'] + 1;
+// 		}else{
+// 			$kode = 1;
+// 		}
 		 
-		//mulai bikin kode
-		 $bikin_kode = str_pad($kode, 7, "0", STR_PAD_LEFT);
-		 $kode_jadi_kontak	 = "KONTAK-".$year."-".$bikin_kode;
+// 		//mulai bikin kode
+// 		 $bikin_kode = str_pad($kode, 7, "0", STR_PAD_LEFT);
+// 		 $kode_jadi_kontak	 = "KONTAK-".$year."-".$bikin_kode;
 		
-		$Simpan = mysqli_query($koneksi,"INSERT INTO contact (KodeContact,TglTransaksi,Nama,Email,IsiPesan,IsDibaca,Subjek)VALUES('$kode_jadi_kontak','$TglTransaksi','$nama','$email','$message',b'0','$subject')");
+// 		$Simpan = mysqli_query($koneksi,"INSERT INTO contact (KodeContact,TglTransaksi,Nama,Email,IsiPesan,IsDibaca,Subjek)VALUES('$kode_jadi_kontak','$TglTransaksi','$nama','$email','$message',b'0','$subject')");
 		
-		if($Simpan){
-			echo '<script language="javascript">alert("Pesan Berhasil Dikirim, Pesan akan dibalas melalui Email Anda!"); document.location="Kontak.php"; </script>';
-		}else{
-			echo '<script language="javascript">alert(Maaf, Pesan Gagal Dikirim!"); document.location="Kontak.php"; </script>';
-		}
+// 		if($Simpan){
+// 			echo '<script language="javascript">alert("Pesan Berhasil Dikirim, Pesan akan dibalas melalui Email Anda!"); document.location="Kontak.php"; </script>';
+// 		}else{
+// 			echo '<script language="javascript">alert(Maaf, Pesan Gagal Dikirim!"); document.location="Kontak.php"; </script>';
+// 		}
 		
-	}
+// 	}
 	
 
 ?>
