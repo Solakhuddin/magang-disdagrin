@@ -3,10 +3,10 @@ include "../../library/config.php";
 
 if(isset($_POST)){
 	if($_POST['action'] == 'SimpanData'){
-		$KodeKB     = mysqli_escape_string($koneksi, $_POST['KodeKB']);
-		$NamaKB 	= mysqli_escape_string($koneksi, $_POST['NamaKB']);
-		$NilaiKB 	= mysqli_escape_string($koneksi, $_POST['NilaiKB']);
-		$Keterangan = mysqli_escape_string($koneksi, $_POST['Keterangan']);
+		$KodeKB     = mysqli_real_escape_string($koneksi, $_POST['KodeKB']);
+		$NamaKB 	= mysqli_real_escape_string($koneksi, $_POST['NamaKB']);
+		$NilaiKB 	= mysqli_real_escape_string($koneksi, $_POST['NilaiKB']);
+		$Keterangan = mysqli_real_escape_string($koneksi, $_POST['Keterangan']);
 		$IsAktif 	= $_POST['IsAktif'];
 		$result = SimpanData($koneksi, $KodeKB, $NamaKB, $NilaiKB, $Keterangan, $IsAktif);
 		if($result){
@@ -32,14 +32,30 @@ if(isset($_POST)){
 }
 
 function SimpanData($conn,  $KodeKB, $NamaKB, $NilaiKB, $Keterangan, $IsAktif){
-	if($KodeKB != ''){
-		$sql = "UPDATE mstkertasberharga SET NamaKB = '$NamaKB', NilaiKB = '$NilaiKB', Keterangan = '$Keterangan', IsAktif = b'$IsAktif' WHERE KodeKB = '$KodeKB'";
-	}else{
-		$KodeKB = getKode($conn);
-		$sql = "INSERT INTO mstkertasberharga (KodeKB, NamaKB, NilaiKB, Keterangan, IsAktif) VALUES ('$KodeKB', '$NamaKB', '$NilaiKB', '$Keterangan', b'$IsAktif')";
-	}
-	return $conn->query($sql);
+    if($KodeKB != ''){
+        $stmt = $conn->prepare("UPDATE mstkertasberharga SET NamaKB = ?, NilaiKB = ?, Keterangan = ?, IsAktif = ? WHERE KodeKB = ?");
+        $stmt->bind_param("sdsss", $NamaKB, $NilaiKB, $Keterangan, $IsAktif, $KodeKB);
+    } else {
+        $KodeKB = getKode($conn);
+        $stmt = $conn->prepare("INSERT INTO mstkertasberharga (KodeKB, NamaKB, NilaiKB, Keterangan, IsAktif) VALUES (?, ?, ?, ?, ?)");
+        $stmt->bind_param("ssdss", $KodeKB, $NamaKB, $NilaiKB, $Keterangan, $IsAktif);
+    }
+
+    $result = $stmt->execute();
+    $stmt->close();
+    return $result;
 }
+
+// script lama
+// function SimpanData($conn,  $KodeKB, $NamaKB, $NilaiKB, $Keterangan, $IsAktif){
+// 	if($KodeKB != ''){
+// 		$sql = "UPDATE mstkertasberharga SET NamaKB = '$NamaKB', NilaiKB = '$NilaiKB', Keterangan = '$Keterangan', IsAktif = b'$IsAktif' WHERE KodeKB = '$KodeKB'";
+// 	}else{
+// 		$KodeKB = getKode($conn);
+// 		$sql = "INSERT INTO mstkertasberharga (KodeKB, NamaKB, NilaiKB, Keterangan, IsAktif) VALUES ('$KodeKB', '$NamaKB', '$NilaiKB', '$Keterangan', b'$IsAktif')";
+// 	}
+// 	return $conn->query($sql);
+// }
 
 function getKode($conn){
 	date_default_timezone_set('Asia/Jakarta');
