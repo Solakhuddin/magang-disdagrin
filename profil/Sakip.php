@@ -93,57 +93,127 @@ $Page='Informasi';
                 <tbody>
                     <?php
                       include '../library/pagination1.php';
-                    //jika tidak ada pencarian pakai ini
-                      // $reload = "Unduhan.php?pagination=true&id=$caridata";
-                      if(isset($_REQUEST['Judul']) && $_REQUEST['Judul']<>""){
-                        // jika ada kata kunci pencarian (artinya form pencarian disubmit dan tidak kosong)pakai ini
-                        $keyword=$_REQUEST['Judul'];
-                        $reload = "Sakip.php?pagination=true&keyword=$keyword";
-                        $sql =  "SELECT IsiKonten,JudulKonten,KodeKonten,JenisKonten,username,TanggalKonten,Gambar1  FROM kontenweb WHERE  JudulKonten LIKE '%$keyword%' and JenisKonten='Sakip' ORDER BY TanggalKonten ASC";
-                        $result = mysqli_query($koneksi,$sql);
-                      }else{
-                      //jika tidak ada pencarian pakai ini
-                        $reload = "Sakip.php?pagination=true";
-                        $sql =  "SELECT IsiKonten,JudulKonten,KodeKonten,JenisKonten,username,TanggalKonten,Gambar1  FROM kontenweb where JenisKonten='Sakip' ORDER BY TanggalKonten ASC";
-                        @$result = mysqli_query($koneksi,$sql);
+
+                      // Initialize variables
+                      $reload = "Sakip.php?pagination=true";
+                      $sql = "SELECT IsiKonten, JudulKonten, KodeKonten, JenisKonten, username, TanggalKonten, Gambar1 FROM kontenweb";
+                      $result = null;
+
+                      // Check if there's a search query
+                      if(isset($_REQUEST['Judul']) && $_REQUEST['Judul'] <> ""){
+                          // If there's a search query, modify the reload URL and prepare SQL statement accordingly
+                          $keyword = "%" . $_REQUEST['Judul'] . "%";
+                          $reload .= "&keyword=" . $_REQUEST['Judul'];
+                          $sql .= " WHERE JudulKonten LIKE ? AND JenisKonten='Sakip' ORDER BY TanggalKonten ASC";
+
+                          // Prepare the SQL statement
+                          if ($stmt = $koneksi->prepare($sql)) {
+                              $stmt->bind_param("s", $keyword);
+                              $stmt->execute();
+                              $result = $stmt->get_result();
+                              $stmt->close();
+                          }
+                      } else {
+                          // If there's no search query, proceed with the default SQL statement
+                          $sql .= " WHERE JenisKonten='Sakip' ORDER BY TanggalKonten ASC";
+
+                          // Prepare the SQL statement
+                          if ($stmt = $koneksi->prepare($sql)) {
+                              $stmt->execute();
+                              $result = $stmt->get_result();
+                              $stmt->close();
+                          }
                       }
-                      // $sql =  "SELECT IsiKonten,JudulKonten,KodeKonten,JenisKonten,username,TanggalKonten,Gambar1 
-                      // FROM kontenweb  
-                      // WHERE JenisKonten='Dokumen'";
-                      // // if($caridata != '') {
-                      // //   $sql .=" AND JudulKonten LIKE '%$caridata%' OR IsiKonten LIKE '%$caridata%' ";
-                      // // }
-                      // $sql .=" ORDER BY TanggalKonten DESC";
-                      
-                      $result = mysqli_query($koneksi,$sql);
-                      
-                      //pagination config start
-                      $rpp = 20; // jumlah record per halaman
+
+                      // Pagination config start
+                      $rpp = 20; // Number of records per page
                       $page = intval(@$_GET["page"]);
-                      if($page<=0) $page = 1;  
-                      $tcount = mysqli_num_rows($result);
-                      $tpages = ($tcount) ? ceil($tcount/$rpp) : 1; // total pages, last page number
+                      if($page <= 0) $page = 1;  
+                      $tcount = $result ? $result->num_rows : 0;
+                      $tpages = ($tcount) ? ceil($tcount/$rpp) : 1; // Total pages, last page number
                       $count = 0;
-                      $i = ($page-1)*$rpp;
-                      $no_urut = ($page-1)*$rpp;
-                      //pagination config end   
-                      while(($count<$rpp) && ($i<$tcount)) {
-                        mysqli_data_seek($result,$i);
-                        $data = mysqli_fetch_array($result); ?>
+                      $i = ($page - 1) * $rpp;
+                      $no_urut = ($page - 1) * $rpp;
+                      // Pagination config end
+
+                      // Loop through the result set to display data
+                      while(($count < $rpp) && ($i < $tcount)) {
+                          $result->data_seek($i);
+                          $data = $result->fetch_array(MYSQLI_ASSOC);
+                          // Display data in table rows
+                          ?>
+                          <tr>
+                              <td><?=++$no_urut?></td>
+                              <td><?=$data['JudulKonten']?></td>
+                              <td><?=$data['IsiKonten']?></td> 
+                              <td><a href="../images/Dokumen/Sakip/<?=$data['Gambar1']?>" class="btn btn-info btn-sm animated fadeInUp"><i class="icon-download-alt"></i> Download </a></td>
+                          </tr>
+                          <?php
+                          $i++; 
+                          $count++;
+                      }
+
+                      // If there are no records, display a message
+                      if($tcount == 0){
+                          echo '<tr><td colspan="4"><strong><center>Tidak ada data</center></strong></td></tr>';
+                      }
+
+                      // script lama 
+                      // ==========================
+                      // include '../library/pagination1.php';
+                      // //jika tidak ada pencarian pakai ini
+                      // // $reload = "Unduhan.php?pagination=true&id=$caridata";
+                      // if(isset($_REQUEST['Judul']) && $_REQUEST['Judul']<>""){
+                      //   // jika ada kata kunci pencarian (artinya form pencarian disubmit dan tidak kosong)pakai ini
+                      //   $keyword=$_REQUEST['Judul'];
+                      //   $reload = "Sakip.php?pagination=true&keyword=$keyword";
+                      //   $sql =  "SELECT IsiKonten,JudulKonten,KodeKonten,JenisKonten,username,TanggalKonten,Gambar1  FROM kontenweb WHERE  JudulKonten LIKE '%$keyword%' and JenisKonten='Sakip' ORDER BY TanggalKonten ASC";
+                      //   $result = mysqli_query($koneksi,$sql);
+                      // }else{
+                      // //jika tidak ada pencarian pakai ini
+                      //   $reload = "Sakip.php?pagination=true";
+                      //   $sql =  "SELECT IsiKonten,JudulKonten,KodeKonten,JenisKonten,username,TanggalKonten,Gambar1  FROM kontenweb where JenisKonten='Sakip' ORDER BY TanggalKonten ASC";
+                      //   @$result = mysqli_query($koneksi,$sql);
+                      // }
+                      // // $sql =  "SELECT IsiKonten,JudulKonten,KodeKonten,JenisKonten,username,TanggalKonten,Gambar1 
+                      // // FROM kontenweb  
+                      // // WHERE JenisKonten='Dokumen'";
+                      // // // if($caridata != '') {
+                      // // //   $sql .=" AND JudulKonten LIKE '%$caridata%' OR IsiKonten LIKE '%$caridata%' ";
+                      // // // }
+                      // // $sql .=" ORDER BY TanggalKonten DESC";
+                      
+                      // $result = mysqli_query($koneksi,$sql);
+                      
+                      // //pagination config start
+                      // $rpp = 20; // jumlah record per halaman
+                      // $page = intval(@$_GET["page"]);
+                      // if($page<=0) $page = 1;  
+                      // $tcount = mysqli_num_rows($result);
+                      // $tpages = ($tcount) ? ceil($tcount/$rpp) : 1; // total pages, last page number
+                      // $count = 0;
+                      // $i = ($page-1)*$rpp;
+                      // $no_urut = ($page-1)*$rpp;
+                      // //pagination config end   
+                      // while(($count<$rpp) && ($i<$tcount)) {
+                      //   mysqli_data_seek($result,$i);
+                      //   $data = mysqli_fetch_array($result); 
+                        
+                    ?>
           
-                  <tr>
-                      <td><?=++$no_urut?></td>
-                      <td><?=$data['JudulKonten']?></td>
-                      <td><?=$data['IsiKonten']?></td> 
-                      <td><a href="../images/Dokumen/Sakip/<?=$data['Gambar1']?>" class="btn btn-info btn-sm animated fadeInUp"><i class="icon-download-alt"></i> Download </a></td>
-                  </tr>
+                  <!-- <tr>
+                      <td><?//=++$no_urut?></td>
+                      <td><?//=$data['JudulKonten']?></td>
+                      <td><?//=$data['IsiKonten']?></td> 
+                      <td><a href="../images/Dokumen/Sakip/<?//=$data['Gambar1']?>" class="btn btn-info btn-sm animated fadeInUp"><i class="icon-download-alt"></i> Download </a></td>
+                  </tr> -->
                   <?php
-                      $i++; 
-                      $count++;
-                    }
-                    if($tcount==0){
-                      echo '<tr><td colspan="4"><strong><center>Tidak ada data</center></strong></td></tr>';
-                    }
+                    //   $i++; 
+                    //   $count++;
+                    // }
+                    // if($tcount==0){
+                    //   echo '<tr><td colspan="4"><strong><center>Tidak ada data</center></strong></td></tr>';
+                    // }
                   ?>
                 </tbody>
               </table>
