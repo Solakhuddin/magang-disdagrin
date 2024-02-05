@@ -100,12 +100,9 @@ include "../library/config.php";
                 </script>';
           @session_destroy();
       } else {        
-          // Establish database connection
-          $mysqli = new mysqli("localhost", "username", "password", "database");
-
           // Check if the connection is successful
-          if($mysqli->connect_error) {
-              die("Connection failed: " . $mysqli->connect_error);
+          if($koneksi->connect_error) {
+              die("Connection failed: " . $koneksi->connect_error);
           }
 
           // Variables for username and password
@@ -115,7 +112,7 @@ include "../library/config.php";
           $expired = 300000;
 
           // Prepare the SQL statement
-          $stmt = $mysqli->prepare("SELECT * FROM userlogin WHERE replace(UserName,' ','') = replace(?,' ','') AND UserPsw = ? AND IsAktif = b'1' AND JenisLogin = 'PEDAGANG'");
+          $stmt = $koneksi->prepare("SELECT * FROM userlogin WHERE replace(UserName,' ','') = replace(?,' ','') AND UserPsw = ? AND IsAktif = b'1' AND JenisLogin = 'PEDAGANG'");
           $stmt->bind_param("ss", $username, $password);
 
           // Execute the prepared statement
@@ -162,7 +159,7 @@ include "../library/config.php";
           $stmt->close();
           
           // Close the database connection
-          $mysqli->close();
+          $koneksi->close();
       }
   }
 
