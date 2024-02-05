@@ -146,37 +146,77 @@ $Page='Layanan';
 
 </body>
 <?php 
-//======== Kirim Pesan ======//
-	@$telepon 		= htmlspecialchars($_POST['telepon']);
-	@$email 		= htmlspecialchars($_POST['email']);
-	@$message	 	= htmlspecialchars($_POST['message']);
+  // Mengambil dan melakukan sanitizing input data
+  $telepon = isset($_POST['telepon']) ? htmlspecialchars($_POST['telepon']) : '';
+  $email = isset($_POST['email']) ? htmlspecialchars($_POST['email']) : '';
+  $message = isset($_POST['message']) ? htmlspecialchars($_POST['message']) : '';
+
+  if(isset($_POST['submit'])){		
+      // Membuat used ID
+      $year = date('Y');
+      $sql = $koneksi->prepare('SELECT RIGHT(KodePengaduan,7) AS kode FROM trpengaduan WHERE KodePengaduan LIKE ? ORDER BY KodePengaduan DESC LIMIT 1');
+      $sql->bind_param("s", "%$year%");
+      $sql->execute();
+      $result = $sql->get_result();
+      $num = $result->num_rows;
+      
+      if($num <> 0) {
+          $data = $result->fetch_array(MYSQLI_ASSOC);
+          $kode = $data['kode'] + 1;
+      } else {
+          $kode = 1;
+      }
+      
+      $bikin_kode = str_pad($kode, 7, "0", STR_PAD_LEFT);
+      $kode_jadi_kontak = "ADUAN-" . $year . "-" . $bikin_kode;
+      
+      // Memasukkan Data ke dalam database
+      $Simpan = $koneksi->prepare("INSERT INTO trpengaduan (KodePengaduan, TglPengaduan, Telepon, Email, Pesan, Status) VALUES (?, NOW(), ?, ?, ?, 'Belum dibaca')");
+      $Simpan->bind_param("ssss", $kode_jadi_kontak, $telepon, $email, $message);
+      $Simpan->execute();
+      
+      if($Simpan->affected_rows > 0){
+          echo '<script language="javascript">alert("Pesan Berhasil Dikirim, Pesan akan dibalas melalui Email Anda!"); document.location="Pengaduan.php"; </script>';
+      } else {
+          echo '<script language="javascript">alert("Maaf, Pesan Gagal Dikirim!"); document.location="Pengaduan.php"; </script>';
+      }
+      
+      $sql->close();
+      $Simpan->close();
+  }
+  
+// Script lama
+// //======== Kirim Pesan ======//
+// 	@$telepon 		= htmlspecialchars($_POST['telepon']);
+// 	@$email 		= htmlspecialchars($_POST['email']);
+// 	@$message	 	= htmlspecialchars($_POST['message']);
 		
-	if(isset($_POST['submit'])){		
-		//membuat id user
-		$year	 = date('Y');
-		$sql 	 = mysqli_query($koneksi,'SELECT RIGHT(KodePengaduan,7) AS kode FROM trpengaduan WHERE KodePengaduan LIKE "%'.$year.'%" ORDER BY KodePengaduan DESC LIMIT 1');  
-		$num	 = mysqli_num_rows($sql);
+// 	if(isset($_POST['submit'])){		
+// 		//membuat id user
+// 		$year	 = date('Y');
+// 		$sql 	 = mysqli_query($koneksi,'SELECT RIGHT(KodePengaduan,7) AS kode FROM trpengaduan WHERE KodePengaduan LIKE "%'.$year.'%" ORDER BY KodePengaduan DESC LIMIT 1');  
+// 		$num	 = mysqli_num_rows($sql);
 		 
-		if($num <> 0) {
-			$data = mysqli_fetch_array($sql);
-			$kode = $data['kode'] + 1;
-		}else{
-			$kode = 1;
-		}
+// 		if($num <> 0) {
+// 			$data = mysqli_fetch_array($sql);
+// 			$kode = $data['kode'] + 1;
+// 		}else{
+// 			$kode = 1;
+// 		}
 		 
-		//mulai bikin kode
-		 $bikin_kode = str_pad($kode, 7, "0", STR_PAD_LEFT);
-		 $kode_jadi_kontak	 = "ADUAN-".$year."-".$bikin_kode;
+// 		//mulai bikin kode
+// 		 $bikin_kode = str_pad($kode, 7, "0", STR_PAD_LEFT);
+// 		 $kode_jadi_kontak	 = "ADUAN-".$year."-".$bikin_kode;
 		
-		$Simpan = mysqli_query($koneksi,"INSERT INTO trpengaduan (KodePengaduan,TglPengaduan,Telepon,Email,Pesan,Status)VALUES('$kode_jadi_kontak',NOW(),'$telepon','$email','$message','Belum dibaca')");
+// 		$Simpan = mysqli_query($koneksi,"INSERT INTO trpengaduan (KodePengaduan,TglPengaduan,Telepon,Email,Pesan,Status)VALUES('$kode_jadi_kontak',NOW(),'$telepon','$email','$message','Belum dibaca')");
 		
-		if($Simpan){
-			echo '<script language="javascript">alert("Pesan Berhasil Dikirim, Pesan akan dibalas melalui Email Anda!"); document.location="Pengaduan.php"; </script>';
-		}else{
-			echo '<script language="javascript">alert(Maaf, Pesan Gagal Dikirim!"); document.location="Pengaduan.php"; </script>';
-		}
+// 		if($Simpan){
+// 			echo '<script language="javascript">alert("Pesan Berhasil Dikirim, Pesan akan dibalas melalui Email Anda!"); document.location="Pengaduan.php"; </script>';
+// 		}else{
+// 			echo '<script language="javascript">alert(Maaf, Pesan Gagal Dikirim!"); document.location="Pengaduan.php"; </script>';
+// 		}
 		
-	}
+// 	}
 	
 
 ?>
