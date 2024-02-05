@@ -72,8 +72,28 @@ $Page='Profil';
               <div class="row">
 			  <div class="span8 form-group field">
 				<?php 
-					$Visi = mysqli_query($koneksi,"SELECT * FROM kontenweb WHERE JenisKonten='Struktur' and KodeKonten='KONTEN-2019-00000001'");
-					$DataVisi = mysqli_fetch_assoc($Visi);
+          $sql = "SELECT * FROM kontenweb WHERE JenisKonten = ? AND KodeKonten = ?";
+          if ($stmt = $koneksi->prepare($sql)) {
+              // Bind the parameters
+              $jenisKonten = 'Struktur';
+              $kodeKonten = 'KONTEN-2019-00000001';
+              $stmt->bind_param("ss", $jenisKonten, $kodeKonten);
+
+              // Execute the statement
+              $stmt->execute();
+
+              // Get the result
+              $result = $stmt->get_result();
+
+              // Fetch the data as an associative array
+              $dataVisi = $result->fetch_assoc();
+
+              // Close the statement
+              $stmt->close();
+          }
+          // script lama 
+					// $Visi = mysqli_query($koneksi,"SELECT * FROM kontenweb WHERE JenisKonten='Struktur' and KodeKonten='KONTEN-2019-00000001'");
+					// $DataVisi = mysqli_fetch_assoc($Visi);
 				?>
 				<img src="../images/web_profil/struktur/<?php echo $DataVisi['Gambar1'];?>" class="img img-thumbnail img-responsive">
 				<p  style="text-align:justify;"><?php echo $DataVisi['IsiKonten']; ?></p>
