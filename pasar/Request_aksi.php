@@ -13,50 +13,103 @@
 <?php
 include "../library/config.php";
 if(isset($_POST['SimpanData'])){
-	@$KeteranganRequest	= htmlspecialchars($_POST['KeteranganRequest']);
-	@$KodePasar	  		= htmlspecialchars($_POST['KodePasar']);
-	@$UserName	  		= htmlspecialchars($_POST['UserName']);
-	@$TanggalRequest	= htmlspecialchars($_POST['TanggalRequest']);
-	@$TotalNilaiKB	  	= array_sum($_POST['TotalNominal']);
-	@$Tanggal 			= date('Ymd');
 
+	// script lama
+	// @$KeteranganRequest	= htmlspecialchars($_POST['KeteranganRequest']);
+	// @$KodePasar	  		= htmlspecialchars($_POST['KodePasar']);
+	// @$UserName	  		= htmlspecialchars($_POST['UserName']);
+	// @$TanggalRequest	= htmlspecialchars($_POST['TanggalRequest']);
+	// @$TotalNilaiKB	  	= array_sum($_POST['TotalNominal']);
+	// @$Tanggal 			= date('Ymd');
 
+	// // $sql = @mysqli_query($koneksi, "SELECT RIGHT(NoTrRequest,8) AS kode FROM traruskb where  ORDER BY NoTrRequest DESC LIMIT 1"); 
+	// $sql = @mysqli_query($koneksi, "SELECT MAX(RIGHT(NoTrRequest,7)) AS kode FROM trrequestkb WHERE  LEFT(NoTrRequest,12)='TKR-$Tanggal' ORDER BY NoTrRequest DESC LIMIT 1"); 
+	// $nums = mysqli_num_rows($sql);
+	// if($nums <> 0){
+	// 	 $data = mysqli_fetch_array($sql);
+	// 	 $kode = $data['kode'] + 1;
+	// }else{
+	// 	 $kode = 1;
+	// }
+	// //mulai bikin kode
+	//  $bikin_kode = str_pad($kode, 8, "0", STR_PAD_LEFT);
+	//  $kode_jadi = "TKR-".$Tanggal."-".$bikin_kode;
 
+	//  $SimpanData = @mysqli_query($koneksi, "INSERT INTO trrequestkb (NoTrRequest,TanggalRequest,KeteranganRequest,IsRealisasi,UserName,KodePasar,TotalNilaiKB)VALUES('$kode_jadi','$TanggalRequest','$KeteranganRequest', b'0','$UserName', '$KodePasar', '$TotalNilaiKB')"); 
 
-	// $sql = @mysqli_query($koneksi, "SELECT RIGHT(NoTrRequest,8) AS kode FROM traruskb where  ORDER BY NoTrRequest DESC LIMIT 1"); 
-	$sql = @mysqli_query($koneksi, "SELECT MAX(RIGHT(NoTrRequest,7)) AS kode FROM trrequestkb WHERE  LEFT(NoTrRequest,12)='TKR-$Tanggal' ORDER BY NoTrRequest DESC LIMIT 1"); 
-	$nums = mysqli_num_rows($sql);
-	if($nums <> 0){
-		 $data = mysqli_fetch_array($sql);
-		 $kode = $data['kode'] + 1;
-	}else{
-		 $kode = 1;
-	}
-	//mulai bikin kode
-	 $bikin_kode = str_pad($kode, 8, "0", STR_PAD_LEFT);
-	 $kode_jadi = "TKR-".$Tanggal."-".$bikin_kode;
+	// if($SimpanData){
 
-	 $SimpanData = @mysqli_query($koneksi, "INSERT INTO trrequestkb (NoTrRequest,TanggalRequest,KeteranganRequest,IsRealisasi,UserName,KodePasar,TotalNilaiKB)VALUES('$kode_jadi','$TanggalRequest','$KeteranganRequest', b'0','$UserName', '$KodePasar', '$TotalNilaiKB')"); 
+	// 	 for ($i=0; $i < sizeof($_POST['KodeKB']); $i++) {
 
-	if($SimpanData){
-
-		 for ($i=0; $i < sizeof($_POST['KodeKB']); $i++) {
-
-		 	$JumlahKB		 =$_POST["JumlahDebetKB"][$i];
-			$KodeKB     	 =$_POST["KodeKB"][$i];
-			$TotalNominal    =$_POST["TotalNominal"][$i];
-			$StokSaatRequest = CekStokRequest($koneksi, $KodePasar, $_POST["KodeKB"][$i]);
-			$NoUrut 		=($i+1);
+	// 	 	$JumlahKB		 =$_POST["JumlahDebetKB"][$i];
+	// 		$KodeKB     	 =$_POST["KodeKB"][$i];
+	// 		$TotalNominal    =$_POST["TotalNominal"][$i];
+	// 		$StokSaatRequest = CekStokRequest($koneksi, $KodePasar, $_POST["KodeKB"][$i]);
+	// 		$NoUrut 		=($i+1);
 				
-            $DataItem = @mysqli_query($koneksi, "INSERT INTO trrequestkbitem (NoUrut,JumlahKB,TotalNominal,NoTrRequest,KodeKB,StokSaatRequest)VALUES('$NoUrut', '$JumlahKB', '$TotalNominal', '$kode_jadi', '$KodeKB', '$StokSaatRequest')"); 
-        }
+    //         $DataItem = @mysqli_query($koneksi, "INSERT INTO trrequestkbitem (NoUrut,JumlahKB,TotalNominal,NoTrRequest,KodeKB,StokSaatRequest)VALUES('$NoUrut', '$JumlahKB', '$TotalNominal', '$kode_jadi', '$KodeKB', '$StokSaatRequest')"); 
+    //     }
 
-        if($DataItem){
-			echo '<script language="javascript">alert("Data Berhasil Disimpan!"); document.location="Request.php"; </script>';
-		}else{
-			echo '<script language="javascript">alert(Data Gagal Disimpan!"); document.location="Request.php"; </script>';
+    //     if($DataItem){
+	// 		echo '<script language="javascript">alert("Data Berhasil Disimpan!"); document.location="Request.php"; </script>';
+	// 	}else{
+	// 		echo '<script language="javascript">alert(Data Gagal Disimpan!"); document.location="Request.php"; </script>';
+	// 	}
+
+	// }
+	$KeteranganRequest = isset($_POST['KeteranganRequest']) ? htmlspecialchars($_POST['KeteranganRequest']) : '';
+	$KodePasar = isset($_POST['KodePasar']) ? htmlspecialchars($_POST['KodePasar']) : '';
+	$UserName = isset($_POST['UserName']) ? htmlspecialchars($_POST['UserName']) : '';
+	$TanggalRequest = isset($_POST['TanggalRequest']) ? htmlspecialchars($_POST['TanggalRequest']) : '';
+	$TotalNilaiKB = isset($_POST['TotalNominal']) ? array_sum($_POST['TotalNominal']) : '';
+	$Tanggal = date('Ymd');
+
+	// Prepare the statement to get the max code
+	$stmt = $koneksi->prepare("SELECT MAX(RIGHT(NoTrRequest,7)) AS kode FROM trrequestkb WHERE LEFT(NoTrRequest,12)=? ORDER BY NoTrRequest DESC LIMIT 1");
+	if ($stmt) {
+		$prefix = "TKR-$Tanggal";
+		$stmt->bind_param("s", $prefix);
+		$stmt->execute();
+		$result = $stmt->get_result();
+
+		if ($result->num_rows !== 0) {
+			$data = $result->fetch_assoc();
+			$kode = $data['kode'] + 1;
+		} else {
+			$kode = 1;
 		}
+		$stmt->close();
 
+		// Generate the code
+		$bikin_kode = str_pad($kode, 8, "0", STR_PAD_LEFT);
+		$kode_jadi = "TKR-$Tanggal-$bikin_kode";
+
+		// Prepare the statement to insert into trrequestkb
+		$stmt = $koneksi->prepare("INSERT INTO trrequestkb (NoTrRequest, TanggalRequest, KeteranganRequest, IsRealisasi, UserName, KodePasar, TotalNilaiKB) VALUES (?, ?, ?, b'0', ?, ?, ?)");
+		if ($stmt) {
+			$stmt->bind_param("ssssss", $kode_jadi, $TanggalRequest, $KeteranganRequest, $UserName, $KodePasar, $TotalNilaiKB);
+			$stmt->execute();
+			$stmt->close();
+
+			// Insert items into trrequestkbitem
+			for ($i = 0; $i < count($_POST['KodeKB']); $i++) {
+				$JumlahKB = $_POST["JumlahDebetKB"][$i];
+				$KodeKB = $_POST["KodeKB"][$i];
+				$TotalNominal = $_POST["TotalNominal"][$i];
+				$StokSaatRequest = CekStokRequest($koneksi, $KodePasar, $_POST["KodeKB"][$i]);
+				$NoUrut = ($i + 1);
+
+				$stmt = $koneksi->prepare("INSERT INTO trrequestkbitem (NoUrut, JumlahKB, TotalNominal, NoTrRequest, KodeKB, StokSaatRequest) VALUES (?, ?, ?, ?, ?, ?)");
+				if ($stmt) {
+					$stmt->bind_param("isssss", $NoUrut, $JumlahKB, $TotalNominal, $kode_jadi, $KodeKB, $StokSaatRequest);
+					$stmt->execute();
+					$stmt->close();
+				}
+			}
+			echo '<script language="javascript">alert("Data Berhasil Disimpan!"); document.location="Request.php"; </script>';
+		} else {
+			echo '<script language="javascript">alert("Data Gagal Disimpan!"); document.location="Request.php"; </script>';
+		}
 	}else{
 		echo '<script type="text/javascript">
 			  sweetAlert({
