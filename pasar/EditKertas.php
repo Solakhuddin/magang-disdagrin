@@ -27,14 +27,39 @@
 							<label class="form-control-label">Jenis Karcis Retribusi</label>
 							<select name="KodeKB" id="comboKB" class="form-control" required>	
 								<?php
-									$menu = mysqli_query($koneksi,"SELECT KodeKB, NamaKB, NilaiKB  FROM mstkertasberharga WHERE IsAktif='1'");
-									while($kode = mysqli_fetch_array($menu)){
-										if($kode['KodeKB']== $KodeKB){
-											echo '<option value="'.$kode['KodeKB'].'" data-nilai="'.$kode['NilaiKB'].'" data-nama="'.$kode['NamaKB'].'" selected>'.$kode['NamaKB'].'</option>';
-										}else{
-											echo '<option value="'.$kode['KodeKB'].'" data-nilai="'.$kode['NilaiKB'].'" data-nama="'.$kode['NamaKB'].'">'.$kode['NamaKB'].'</option>';
+
+									$sql = "SELECT KodeKB, NamaKB, NilaiKB FROM mstkertasberharga WHERE IsAktif = ?";
+									$stmt = $koneksi->prepare($sql);
+
+									// Bind parameters
+									$isAktif = 1; 
+									$stmt->bind_param("i", $isAktif);
+
+									$stmt->execute();
+
+									$stmt->bind_result($KodeKB, $NamaKB, $NilaiKB);
+
+									while ($stmt->fetch()) {
+										if ($KodeKB == $KodeKB) {
+											echo '<option value="' . $KodeKB . '" data-nilai="' . $NilaiKB . '" data-nama="' . $NamaKB . '" selected>' . $NamaKB . '</option>';
+										} else {
+											echo '<option value="' . $KodeKB . '" data-nilai="' . $NilaiKB . '" data-nama="' . $NamaKB . '">' . $NamaKB . '</option>';
 										}
 									}
+
+									$stmt->close();
+
+									$koneksi->close();
+
+									// script lama
+									// $menu = mysqli_query($koneksi,"SELECT KodeKB, NamaKB, NilaiKB  FROM mstkertasberharga WHERE IsAktif='1'");
+									// while($kode = mysqli_fetch_array($menu)){
+									// 	if($kode['KodeKB']== $KodeKB){
+									// 		echo '<option value="'.$kode['KodeKB'].'" data-nilai="'.$kode['NilaiKB'].'" data-nama="'.$kode['NamaKB'].'" selected>'.$kode['NamaKB'].'</option>';
+									// 	}else{
+									// 		echo '<option value="'.$kode['KodeKB'].'" data-nilai="'.$kode['NilaiKB'].'" data-nama="'.$kode['NamaKB'].'">'.$kode['NamaKB'].'</option>';
+									// 	}
+									// }
 								?>
 							</select>
 						</div>
