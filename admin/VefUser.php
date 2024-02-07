@@ -7,9 +7,26 @@ $Page = 'VerifikasiUser';
 if(@$_GET['id']!=null){
 	$Sebutan = 'Detil Data Timbangan';	
 	$Readonly = 'readonly';
-	
-	@$Edit = mysqli_query($koneksi,"SELECT * FROM mstperson WHERE IDPerson='".base64_decode($_GET['id'])."'");
-	@$RowData = mysqli_fetch_assoc($Edit);
+
+	$decodedID = base64_decode($_GET['id']);
+
+	$sql = "SELECT * FROM mstperson WHERE IDPerson = ?";
+
+	$stmt = $koneksi->prepare($sql);
+
+	$stmt->bind_param("s", $decodedID);
+
+	$stmt->execute();
+
+	$result = $stmt->get_result();
+
+	$rowData = $result->fetch_assoc();
+
+	$stmt->close();
+
+	// script lama
+	// @$Edit = mysqli_query($koneksi,"SELECT * FROM mstperson WHERE IDPerson='".base64_decode($_GET['id'])."'");
+	// @$RowData = mysqli_fetch_assoc($Edit);
 }
 
 ?>
@@ -106,16 +123,50 @@ if(@$_GET['id']!=null){
 										// mengatur variabel reload dan sql
 										$kosong=null;
 										if(isset($_REQUEST['keyword']) && $_REQUEST['keyword']<>""){
-											// jika ada kata kunci pencarian (artinya form pencarian disubmit dan tidak kosong)pakai ini
-											$keyword=$_REQUEST['keyword'];
+											$keyword = $_REQUEST['keyword'];
+
 											$reload = "TimbanganUser.php?pagination=true&keyword=$keyword";
-											$sql =  "SELECT NamaPerson,AlamatLengkapPerson,JenisPerson,IDPerson FROM mstperson where  NamaPerson LIKE '%$keyword%' and IsVerified=b'1' and JenisPerson LIKE '%Timbangan%' ORDER BY NamaPerson ASC";
-											$result = mysqli_query($koneksi,$sql);
+
+											$sql = "SELECT NamaPerson, AlamatLengkapPerson, JenisPerson, IDPerson 
+													FROM mstperson 
+													WHERE NamaPerson LIKE ? AND IsVerified = b'1' AND JenisPerson LIKE '%Timbangan%' 
+													ORDER BY NamaPerson ASC";
+
+											$stmt = $koneksi->prepare($sql);
+
+											$keywordParam = "%$keyword%";
+											$stmt->bind_param("s", $keywordParam);
+
+											$stmt->execute();
+
+											$result = $stmt->get_result();
+
+											// script lama
+											// jika ada kata kunci pencarian (artinya form pencarian disubmit dan tidak kosong)pakai ini
+											// $keyword=$_REQUEST['keyword'];
+											// $reload = "TimbanganUser.php?pagination=true&keyword=$keyword";
+											// $sql =  "SELECT NamaPerson,AlamatLengkapPerson,JenisPerson,IDPerson FROM mstperson where  NamaPerson LIKE '%$keyword%' and IsVerified=b'1' and JenisPerson LIKE '%Timbangan%' ORDER BY NamaPerson ASC";
+											// $result = mysqli_query($koneksi,$sql);
 										}else{
 										//jika tidak ada pencarian pakai ini
 											$reload = "TimbanganUser.php?pagination=true";
-											$sql =  "SELECT NamaPerson,AlamatLengkapPerson,JenisPerson,IDPerson FROM mstperson where IsVerified=b'0' and JenisPerson LIKE '%Timbangan%' ORDER BY NamaPerson ASC";
-											@$result = mysqli_query($koneksi,$sql);
+											$sql = "SELECT NamaPerson, AlamatLengkapPerson, JenisPerson, IDPerson 
+													FROM mstperson 
+													WHERE IsVerified = b'0' AND JenisPerson LIKE ? 
+													ORDER BY NamaPerson ASC";
+
+											$stmt = $koneksi->prepare($sql);
+
+											$jenisPersonParam = "%Timbangan%";
+											$stmt->bind_param("s", $jenisPersonParam);
+
+											$stmt->execute();
+
+											$result = $stmt->get_result();
+
+											// script lama
+											// $sql =  "SELECT NamaPerson,AlamatLengkapPerson,JenisPerson,IDPerson FROM mstperson where IsVerified=b'0' and JenisPerson LIKE '%Timbangan%' ORDER BY NamaPerson ASC";
+											// @$result = mysqli_query($koneksi,$sql);
 										}
 										
 										//pagination config start
@@ -245,13 +296,59 @@ if(@$_GET['id']!=null){
 										  </thead>
 										  <tbody>
 											<?php
-												$sql =mysqli_query($koneksi, "SELECT b.IDTimbangan,c.JenisTimbangan,c.NamaTimbangan,b.NamaTimbangan as RealName,a.NamaPerson,a.IDPerson,d.NamaKelas,e.NamaUkuran,e.RetribusiDikantor,e.RetribusiDiLokasi,f.NamaLokasi,f.AlamatLokasi FROM mstperson a join timbanganperson b on a.IDPerson=b.IDPerson join msttimbangan c on b.KodeTimbangan=c.KodeTimbangan join kelas d on c.KodeTimbangan=d.KodeTimbangan join detilukuran e on (d.KodeTimbangan,d.KodeKelas)=(e.KodeTimbangan,e.KodeKelas) join lokasimilikperson f on (f.KodeLokasi,f.IDPerson)=(b.KodeLokasi,b.IDPerson) WHERE  a.IsVerified=b'0' and a.JenisPerson LIKE '%Timbangan%' and a.IDPerson='".$RowData['IDPerson']."' GROUP BY b.IDTimbangan ASC");
-												$no_urut = 0;
-												$count = mysqli_num_rows($sql);
+												// Prepare the SQL statement with placeholders for the parameters
+												$sql = "SELECT b.IDTimbangan, c.JenisTimbangan, c.NamaTimbangan, b.NamaTimbangan as RealName, a.NamaPerson, a.IDPerson, d.NamaKelas, e.NamaUkuran, e.RetribusiDikantor, e.RetribusiDiLokasi, f.NamaLokasi, f.AlamatLokasi 
+														FROM mstperson a 
+														JOIN timbanganperson b ON a.IDPerson = b.IDPerson 
+														JOIN msttimbangan c ON b.KodeTimbangan = c.KodeTimbangan 
+														JOIN kelas d ON c.KodeTimbangan = d.KodeTimbangan 
+														JOIN detilukuran e ON (d.KodeTimbangan = e.KodeTimbangan AND d.KodeKelas = e.KodeKelas) 
+														JOIN lokasimilikperson f ON (f.KodeLokasi = b.KodeLokasi AND f.IDPerson = b.IDPerson) 
+														WHERE a.IsVerified = b'0' AND a.JenisPerson LIKE ? AND a.IDPerson = ?
+														GROUP BY b.IDTimbangan ASC";
+
+												$stmt = $koneksi->prepare($sql);
+
+												$jenisPersonParam = "%Timbangan%";
+												$idPersonParam = $RowData['IDPerson'];
+												$stmt->bind_param("ss", $jenisPersonParam, $idPersonParam);
+
+												$stmt->execute();
+
+												$result = $stmt->get_result();
+
+												$count = $result->num_rows;
+
+												// source code lama
+												// $sql =mysqli_query($koneksi, "SELECT b.IDTimbangan,c.JenisTimbangan,c.NamaTimbangan,b.NamaTimbangan as RealName,a.NamaPerson,a.IDPerson,d.NamaKelas,e.NamaUkuran,e.RetribusiDikantor,e.RetribusiDiLokasi,f.NamaLokasi,f.AlamatLokasi FROM mstperson a join timbanganperson b on a.IDPerson=b.IDPerson join msttimbangan c on b.KodeTimbangan=c.KodeTimbangan join kelas d on c.KodeTimbangan=d.KodeTimbangan join detilukuran e on (d.KodeTimbangan,d.KodeKelas)=(e.KodeTimbangan,e.KodeKelas) join lokasimilikperson f on (f.KodeLokasi,f.IDPerson)=(b.KodeLokasi,b.IDPerson) WHERE  a.IsVerified=b'0' and a.JenisPerson LIKE '%Timbangan%' and a.IDPerson='".$RowData['IDPerson']."' GROUP BY b.IDTimbangan ASC");
+												// $no_urut = 0;
+												// $count = mysqli_num_rows($sql);
 												if($count == null OR $count === 0){
 													echo '<tr class="odd gradeX"><td colspan="9" align="center"><b>Tidak Ada Data</b></td></tr>';
 												} else {
-													while($res = mysqli_fetch_array($sql)){
+													$sql = "SELECT b.IDTimbangan, c.JenisTimbangan, c.NamaTimbangan, b.NamaTimbangan as RealName, a.NamaPerson, a.IDPerson, d.NamaKelas, e.NamaUkuran, e.RetribusiDikantor, e.RetribusiDiLokasi, f.NamaLokasi, f.AlamatLokasi 
+															FROM mstperson a 
+															JOIN timbanganperson b ON a.IDPerson = b.IDPerson 
+															JOIN msttimbangan c ON b.KodeTimbangan = c.KodeTimbangan 
+															JOIN kelas d ON c.KodeTimbangan = d.KodeTimbangan 
+															JOIN detilukuran e ON (d.KodeTimbangan = e.KodeTimbangan AND d.KodeKelas = e.KodeKelas) 
+															JOIN lokasimilikperson f ON (f.KodeLokasi = b.KodeLokasi AND f.IDPerson = b.IDPerson) 
+															WHERE a.IsVerified = b'0' AND a.JenisPerson LIKE ? AND a.IDPerson = ?
+															GROUP BY b.IDTimbangan ASC";
+
+													$stmt = $koneksi->prepare($sql);
+
+													$jenisPersonParam = "%Timbangan%";
+													$idPersonParam = $RowData['IDPerson'];
+													$stmt->bind_param("ss", $jenisPersonParam, $idPersonParam);
+
+													$stmt->execute();
+
+													$result = $stmt->get_result();
+
+													while($res = $result->fetch_array()){
+													
+													// while($res = mysqli_fetch_array($sql)){
 											?>
 											<tr class="odd gradeX">
 												<td width="50px">
@@ -339,7 +436,7 @@ if(@$_GET['id']!=null){
     <!-- Main File-->
     <script src="../komponen/js/front.js"></script>	
 	<script type="text/javascript">
-			// open modal lihat dokumen
+		// open modal lihat dokumen
 	   $(document).ready(function () {
 	   $(".open_modal").click(function(e) {
 		  var id_timbangan = $(this).data("idtimbangan");
@@ -381,13 +478,19 @@ if(@$_GET['id']!=null){
 	
 	<?php 
 		
-		if(isset($_POST['Verifikasi'])){
-		@$IDPerson 		= htmlspecialchars($_POST['IDPerson']);
-		@$NamaPerson 	= htmlspecialchars($_POST['NamaPerson']);
-		
-		// query update
-		$query = mysqli_query($koneksi,"UPDATE mstperson SET IsVerified=b'1' WHERE IDPerson='$IDPerson'");
-		if($query){
+	if(isset($_POST['Verifikasi'])){
+		$IDPerson = htmlspecialchars($_POST['IDPerson']);
+		$NamaPerson = htmlspecialchars($_POST['NamaPerson']);
+
+		$query = "UPDATE mstperson SET IsVerified = b'1' WHERE IDPerson = ?";
+
+		$stmt = $koneksi->prepare($query);
+
+		$stmt->bind_param("s", $IDPerson);
+
+		$result = $stmt->execute();
+
+		if ($result) {
 			InsertLog($koneksi, 'Verifikasi Data', 'Verifikasi Data User atas nama '.$NamaPerson, $login_id, $IDPerson, 'Verifikasi User');
 			echo '<script type="text/javascript">
 				  sweetAlert({
@@ -399,7 +502,7 @@ if(@$_GET['id']!=null){
 					window.location.href = "VefUser.php";
 				  });
 				  </script>';
-		}else{
+		} else {
 			echo '<script type="text/javascript">
 				  sweetAlert({
 					title: "Verifikasi Data Gagal!",
@@ -411,7 +514,42 @@ if(@$_GET['id']!=null){
 				  });
 				  </script>';
 		}
+
+		$stmt->close();
+
 	}
+
+	// source code lama
+	// if(isset($_POST['Verifikasi'])){
+	// 	@$IDPerson 		= htmlspecialchars($_POST['IDPerson']);
+	// 	@$NamaPerson 	= htmlspecialchars($_POST['NamaPerson']);
+		
+	// 	$query = mysqli_query($koneksi,"UPDATE mstperson SET IsVerified=b'1' WHERE IDPerson='$IDPerson'");
+	// 	if($query){
+	// 		InsertLog($koneksi, 'Verifikasi Data', 'Verifikasi Data User atas nama '.$NamaPerson, $login_id, $IDPerson, 'Verifikasi User');
+	// 		echo '<script type="text/javascript">
+	// 			  sweetAlert({
+	// 				title: "Verifikasi Data Berhasil!",
+	// 				text: "",
+	// 				type: "success"
+	// 			  },
+	// 			  function () {
+	// 				window.location.href = "VefUser.php";
+	// 			  });
+	// 			  </script>';
+	// 	}else{
+	// 		echo '<script type="text/javascript">
+	// 			  sweetAlert({
+	// 				title: "Verifikasi Data Gagal!",
+	// 				text: " ",
+	// 				type: "error"
+	// 			  },
+	// 			  function () {
+	// 				window.location.href = "VefUser.php";
+	// 			  });
+	// 			  </script>';
+	// 	}
+	// }
 	
 	
 	?>
