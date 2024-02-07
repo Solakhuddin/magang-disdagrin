@@ -14,7 +14,24 @@ if(@$_GET['id']==null){
 	$Sebutan = 'Edit Data';	
 	$Readonly = 'readonly';
 	
-	$Edit = mysqli_query($koneksi,"SELECT * FROM userlogin WHERE UserName='".base64_decode($_GET['id'])."'");
+	$decodedID = base64_decode($_GET['id']);
+
+	$query = "SELECT * FROM userlogin WHERE UserName = ?";
+
+	$stmt = $koneksi->prepare($query);
+
+	$stmt->bind_param("s", $decodedID);
+
+	$stmt->execute();
+
+	$result = $stmt->get_result();
+
+	$RowData = $result->fetch_assoc();
+
+	$stmt->close();
+
+	// source code lama
+	$Edit = mysqli_query($koneksi, "SELECT * FROM userlogin WHERE UserName='".base64_decode($_GET['id'])."'");
 	$RowData = mysqli_fetch_assoc($Edit);
 }
 ?>
@@ -124,16 +141,42 @@ if(@$_GET['id']==null){
 										// mengatur variabel reload dan sql
 										$kosong=null;
 										if(isset($_REQUEST['keyword']) && $_REQUEST['keyword']<>""){
-											// jika ada kata kunci pencarian (artinya form pencarian disubmit dan tidak kosong)pakai ini
-											$keyword=$_REQUEST['keyword'];
+											$keyword = $_REQUEST['keyword'];
+
 											$reload = "UserLogin.php?pagination=true&keyword=$keyword";
-											$sql =  "SELECT * FROM userlogin WHERE (ActualName LIKE '%$keyword%' OR  NamaPegawai LIKE '%$keyword%' ) AND IsAktif=b'1' ANDJenisLogin != 'PEDAGANG' AND JenisLogin != 'ADMIN WEB' ORDER BY NamaPegawai ASC";
-											$result = mysqli_query($koneksi,$sql);
+
+											$sql = "SELECT * FROM userlogin WHERE (ActualName LIKE ? OR NamaPegawai LIKE ?) AND IsAktif = b'1' AND JenisLogin != 'PEDAGANG' AND JenisLogin != 'ADMIN WEB' ORDER BY NamaPegawai ASC";
+
+											$stmt = $koneksi->prepare($sql);
+
+											$keywordParam = "%$keyword%";
+											$stmt->bind_param("ss", $keywordParam, $keywordParam);
+
+											$stmt->execute();
+
+											$result = $stmt->get_result();
+
+											// source code lama
+											// jika ada kata kunci pencarian (artinya form pencarian disubmit dan tidak kosong)pakai ini
+											// $keyword=$_REQUEST['keyword'];
+											// $reload = "UserLogin.php?pagination=true&keyword=$keyword";
+											// $sql =  "SELECT * FROM userlogin WHERE (ActualName LIKE '%$keyword%' OR  NamaPegawai LIKE '%$keyword%' ) AND IsAktif=b'1' ANDJenisLogin != 'PEDAGANG' AND JenisLogin != 'ADMIN WEB' ORDER BY NamaPegawai ASC";
+											// $result = mysqli_query($koneksi,$sql);
 										}else{
 										//jika tidak ada pencarian pakai ini
 											$reload = "UserLogin.php?pagination=true";
-											$sql =  "SELECT * FROM userlogin WHERE IsAktif=b'1' AND JenisLogin != 'PEDAGANG' AND JenisLogin != 'ADMIN WEB' ORDER BY ActualName ASC";
-											$result = mysqli_query($koneksi,$sql);
+
+											$sql = "SELECT * FROM userlogin WHERE IsAktif = b'1' AND JenisLogin != 'PEDAGANG' AND JenisLogin != 'ADMIN WEB' ORDER BY ActualName ASC";
+
+											$stmt = $koneksi->prepare($sql);
+
+											$stmt->execute();
+
+											$result = $stmt->get_result();
+
+											// source code lama
+											// $sql =  "SELECT * FROM userlogin WHERE IsAktif=b'1' AND JenisLogin != 'PEDAGANG' AND JenisLogin != 'ADMIN WEB' ORDER BY ActualName ASC";
+											// $result = mysqli_query($koneksi,$sql);
 										}
 										
 										//pagination config start
@@ -257,14 +300,31 @@ if(@$_GET['id']==null){
 								   <div class="col-sm-9">
 									<select name="LevelID" class="form-control" required>	
 										<?php
-											$menu = mysqli_query($koneksi,"SELECT * FROM accesslevel WHERE IsAktif='1'");
-											while($kode = mysqli_fetch_array($menu)){
-												if($kode['LevelID']==@$RowData['LevelID']){
-													echo "<option value=\"".$kode['LevelID']."\" selected >".$kode['LevelName']."</option>\n";
-												}else{
-													echo "<option value=\"".$kode['LevelID']."\" >".$kode['LevelName']."</option>\n";
+											$sql = "SELECT * FROM accesslevel WHERE IsAktif = '1'";
+
+											$stmt = $koneksi->prepare($sql);
+
+											$stmt->execute();
+
+											$result = $stmt->get_result();
+
+											while ($kode = $result->fetch_assoc()) {
+												if ($kode['LevelID'] == @$RowData['LevelID']) {
+													echo "<option value=\"" . $kode['LevelID'] . "\" selected>" . $kode['LevelName'] . "</option>\n";
+												} else {
+													echo "<option value=\"" . $kode['LevelID'] . "\">" . $kode['LevelName'] . "</option>\n";
 												}
 											}
+
+											// source code lama
+											// $menu = mysqli_query($koneksi,"SELECT * FROM accesslevel WHERE IsAktif='1'");
+											// while($kode = mysqli_fetch_array($menu)){
+											// 	if($kode['LevelID']==@$RowData['LevelID']){
+											// 		echo "<option value=\"".$kode['LevelID']."\" selected >".$kode['LevelName']."</option>\n";
+											// 	}else{
+											// 		echo "<option value=\"".$kode['LevelID']."\" >".$kode['LevelName']."</option>\n";
+											// 	}
+											// }
 										?>
 									</select>
 								   </div>
@@ -342,10 +402,14 @@ if(@$_GET['id']==null){
 	
 	
 	if(isset($_POST['Simpan'])){
-		//cek apakah username ada yang sama atau tidak
-		$cekuser = mysqli_query($koneksi,"select UserName from userlogin where UserName='$UserName'");
-		$numuser = mysqli_num_rows($cekuser);
-		if($numuser == 1 ){
+		//cek apakah username ada yang sama atau tidak 
+		$stmt = $koneksi->prepare("SELECT UserName FROM userlogin WHERE UserName = ?");
+		$stmt->bind_param("s", $UserName);
+		$stmt->execute();
+		$stmt->store_result();
+		$numuser = $stmt->num_rows;
+
+		if ($numuser == 1) {
 			echo '<script type="text/javascript">
 					  sweetAlert({
 						title: "Simpan Data Gagal!",
@@ -356,13 +420,17 @@ if(@$_GET['id']==null){
 						window.location.href = "UserLogin.php";
 					  });
 					  </script>';
-		}else{
-			$query = mysqli_query($koneksi,"INSERT into userlogin (UserName,UserPsw,ActualName,Address,Phone,Email,LevelID,NIP,IsAktif,Jabatan,NamaPegawai,HPNo, JenisLogin) 
-			VALUES ('$UserName','$UserPsw','$ActualName','$Address','$Phone','$Email','$LevelID','$NIP',b'1','$Jabatan','$ActualName','$HPNo', '$JenisLogin')");
-			if($query){
-				InsertLog($koneksi, 'Tambah Data', 'Menambah User Login atas nama '.$ActualName, $login_id, '', '');
+		} else {
+			$query = $koneksi->prepare("INSERT INTO userlogin (UserName, UserPsw, ActualName, Address, Phone, Email, LevelID, NIP, IsAktif, Jabatan, NamaPegawai, HPNo, JenisLogin) 
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, b'1', ?, ?, ?, ?, ?)");
+			
+			$query->bind_param("sssssssssssss", $UserName, $UserPsw, $ActualName, $Address, $Phone, $Email, $LevelID, $NIP, $Jabatan, $ActualName, $HPNo, $JenisLogin);
+			$query->execute();
+
+			if ($query) {
+				InsertLog($koneksi, 'Tambah Data', 'Menambah User Login atas nama ' . $ActualName, $login_id, '', '');
 				echo '<script language="javascript">alert("Data Berhasil Disimpan!");document.location="UserLogin.php";</script>';
-			}else{
+			} else {
 				echo '<script type="text/javascript">
 					  sweetAlert({
 						title: "Simpan Data Gagal!",
@@ -375,13 +443,53 @@ if(@$_GET['id']==null){
 					  </script>';
 			}
 		}
+
+		// source code lama
+		// $cekuser = mysqli_query($koneksi,"select UserName from userlogin where UserName='$UserName'");
+		// $numuser = mysqli_num_rows($cekuser);
+		// if($numuser == 1 ){
+		// 	echo '<script type="text/javascript">
+		// 			  sweetAlert({
+		// 				title: "Simpan Data Gagal!",
+		// 				text: " Username sudah ada, Silahkan ganti username Anda! ",
+		// 				type: "error"
+		// 			  },
+		// 			  function () {
+		// 				window.location.href = "UserLogin.php";
+		// 			  });
+		// 			  </script>';
+		// }else{
+		// 	$query = mysqli_query($koneksi,"INSERT into userlogin (UserName,UserPsw,ActualName,Address,Phone,Email,LevelID,NIP,IsAktif,Jabatan,NamaPegawai,HPNo, JenisLogin) 
+		// 	VALUES ('$UserName','$UserPsw','$ActualName','$Address','$Phone','$Email','$LevelID','$NIP',b'1','$Jabatan','$ActualName','$HPNo', '$JenisLogin')");
+		// 	if($query){
+		// 		InsertLog($koneksi, 'Tambah Data', 'Menambah User Login atas nama '.$ActualName, $login_id, '', '');
+		// 		echo '<script language="javascript">alert("Data Berhasil Disimpan!");document.location="UserLogin.php";</script>';
+		// 	}else{
+		// 		echo '<script type="text/javascript">
+		// 			  sweetAlert({
+		// 				title: "Simpan Data Gagal!",
+		// 				text: " ",
+		// 				type: "error"
+		// 			  },
+		// 			  function () {
+		// 				window.location.href = "UserLogin.php";
+		// 			  });
+		// 			  </script>';
+		// 	}
+		// }
 	}
 	
 	if(isset($_POST['SimpanEdit'])){
 		//update data user login berdasarkan username yng di pilih
-		$query = mysqli_query($koneksi,"UPDATE userlogin SET ActualName='$ActualName', NamaPegawai='$ActualName',Address='$Address',Phone='$Phone', JenisLogin='$JenisLogin',Email='$Email',UserPsw='$UserPsw',LevelID='$LevelID', Jabatan='$Jabatan', NIP='$NIP', HPNo='$HPNo' WHERE UserName='$UserName'");
-		
-		if($query){
+		$query = "UPDATE userlogin SET ActualName=?, NamaPegawai=?, Address=?, Phone=?, JenisLogin=?, Email=?, UserPsw=?, LevelID=?, Jabatan=?, NIP=?, HPNo=? WHERE UserName=?";
+
+		$stmt = $koneksi->prepare($query);
+
+		$stmt->bind_param("ssssssssssss", $ActualName, $ActualName, $Address, $Phone, $JenisLogin, $Email, $UserPsw, $LevelID, $Jabatan, $NIP, $HPNo, $UserName);
+
+		$result = $stmt->execute();
+
+		if ($result) {
 			InsertLog($koneksi, 'Edit Data', 'Mengubah data User Login atas nama '.$ActualName, $login_id, '', '');
 			echo '<script type="text/javascript">
 				  sweetAlert({
@@ -393,7 +501,7 @@ if(@$_GET['id']==null){
 					window.location.href = "UserLogin.php";
 				  });
 				  </script>';
-		}else{
+		} else {
 			echo '<script type="text/javascript">
 				  sweetAlert({
 					title: "Edit Data Gagal!",
@@ -405,14 +513,54 @@ if(@$_GET['id']==null){
 				  });
 				  </script>';
 		}
+
+		$stmt->close();
+
+
+		// source code lama
+		// $query = mysqli_query($koneksi,"UPDATE userlogin SET ActualName='$ActualName', NamaPegawai='$ActualName',Address='$Address',Phone='$Phone', JenisLogin='$JenisLogin',Email='$Email',UserPsw='$UserPsw',LevelID='$LevelID', Jabatan='$Jabatan', NIP='$NIP', HPNo='$HPNo' WHERE UserName='$UserName'");
+		
+		// if($query){
+		// 	InsertLog($koneksi, 'Edit Data', 'Mengubah data User Login atas nama '.$ActualName, $login_id, '', '');
+		// 	echo '<script type="text/javascript">
+		// 		  sweetAlert({
+		// 			title: "Edit Data Berhasil!",
+		// 			text: " ",
+		// 			type: "success"
+		// 		  },
+		// 		  function () {
+		// 			window.location.href = "UserLogin.php";
+		// 		  });
+		// 		  </script>';
+		// }else{
+		// 	echo '<script type="text/javascript">
+		// 		  sweetAlert({
+		// 			title: "Edit Data Gagal!",
+		// 			text: " ",
+		// 			type: "error"
+		// 		  },
+		// 		  function () {
+		// 			window.location.href = "UserLogin.php";
+		// 		  });
+		// 		  </script>';
+		// }
 	}
 	
 	if(base64_decode(@$_GET['aksi'])=='Hapus'){
-		$query = mysqli_query($koneksi,"UPDATE userlogin SET IsAktif=b'0' WHERE UserName='".base64_decode($_GET['id'])."'");
-		if($query){
+		$id = base64_decode($_GET['id']);
+
+		$query = "UPDATE userlogin SET IsAktif = b'0' WHERE UserName = ?";
+
+		$stmt = $koneksi->prepare($query);
+
+		$stmt->bind_param("s", $id);
+
+		$result = $stmt->execute();
+
+		if ($result) {
 			InsertLog($koneksi, 'Hapus Data', 'Menghapus User Login atas nama '.$ActualName, $login_id, '', '');
 			echo '<script language="javascript">document.location="UserLogin.php"; </script>';
-		}else{
+		} else {
 			echo '<script type="text/javascript">
 					  sweetAlert({
 						title: "Hapus Data Gagal!",
@@ -424,6 +572,26 @@ if(@$_GET['id']==null){
 					  });
 					  </script>';
 		}
+
+		$stmt->close();
+
+		// source code lama
+		// $query = mysqli_query($koneksi,"UPDATE userlogin SET IsAktif=b'0' WHERE UserName='".base64_decode($_GET['id'])."'");
+		// if($query){
+			// InsertLog($koneksi, 'Hapus Data', 'Menghapus User Login atas nama '.$ActualName, $login_id, '', '');
+		// 	echo '<script language="javascript">document.location="UserLogin.php"; </script>';
+		// }else{
+		// 	echo '<script type="text/javascript">
+		// 			  sweetAlert({
+		// 				title: "Hapus Data Gagal!",
+		// 				text: " Data Telah Digunakan Dalam Berbagai Transaksi ",
+		// 				type: "error"
+		// 			  },
+		// 			  function () {
+		// 				window.location.href = "UserLogin.php";
+		// 			  });
+		// 			  </script>';
+		// }
 		
 	}
 
