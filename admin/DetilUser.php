@@ -10,10 +10,19 @@ if(@$_GET['id']!=null){
 	$Sebutan = 'Detail Informasi User';	
 	$Readonly = 'readonly';
 	
-	@$Edit = mysqli_query($koneksi,"SELECT  a.NamaPerson,a.NoRekeningBank,a.AnRekBank,a.AlamatLengkapPerson,a.NIK,a.IsPerusahaan,a.JenisPerson,a.PJPerson,b.NamaPerson as Perusahaan,b.AlamatLengkapPerson as AlamatUsaha,a.IDPerson, (SELECT COUNT(PJPerson) From mstperson Where PJPerson= a.IDPerson) as Jumlah
+	// @$Edit = mysqli_query($koneksi,"SELECT  a.NamaPerson,a.NoRekeningBank,a.AnRekBank,a.AlamatLengkapPerson,a.NIK,a.IsPerusahaan,a.JenisPerson,a.PJPerson,b.NamaPerson as Perusahaan,b.AlamatLengkapPerson as AlamatUsaha,a.IDPerson, (SELECT COUNT(PJPerson) From mstperson Where PJPerson= a.IDPerson) as Jumlah
+	// FROM mstperson a 
+	// LEFT JOIN mstperson b on b.IDPerson=a.PJPerson
+	// WHERE a.IDPerson='".htmlspecialchars(base64_decode($_GET['id']))."'");
+	$sql = "SELECT  a.NamaPerson,a.NoRekeningBank,a.AnRekBank,a.AlamatLengkapPerson,a.NIK,a.IsPerusahaan,a.JenisPerson,a.PJPerson,b.NamaPerson as Perusahaan,b.AlamatLengkapPerson as AlamatUsaha,a.IDPerson, (SELECT COUNT(PJPerson) From mstperson Where PJPerson= a.IDPerson) as Jumlah
 	FROM mstperson a 
 	LEFT JOIN mstperson b on b.IDPerson=a.PJPerson
-	WHERE a.IDPerson='".htmlspecialchars(base64_decode($_GET['id']))."'");
+	WHERE a.IDPerson= ? ";
+	$stmt = $koneksi->prepare($sql);
+	$okeoke = htmlspecialchars(base64_decode($_GET['id']));
+	$stmt->bind_param("s", $okeoke);
+	$stmt->execute();
+	@$Edit = $stmt->get_result();
 	@$RowData = mysqli_fetch_assoc($Edit);
 	@$row = explode("#", $RowData['JenisPerson']);
 }
@@ -139,13 +148,25 @@ if(@$_GET['id']!=null){
 										  </thead>
 										  <tbody>
 											<?php
-												$sql =mysqli_query($koneksi, "SELECT b.NamaTimbangan,d.NamaKelas,e.NamaUkuran,c.JenisTimbangan,f.NamaLokasi,b.IDPerson,b.IDTimbangan 
+												// $sql =mysqli_query($koneksi, "SELECT b.NamaTimbangan,d.NamaKelas,e.NamaUkuran,c.JenisTimbangan,f.NamaLokasi,b.IDPerson,b.IDTimbangan 
+												// FROM timbanganperson b 
+												// join msttimbangan c on c.KodeTimbangan=b.KodeTimbangan 
+												// join kelas d on (b.KodeTimbangan,b.KodeKelas)=(d.KodeTimbangan,d.KodeKelas) 
+												// join detilukuran e on (e.KodeTimbangan,e.KodeKelas,e.KodeUkuran)=(b.KodeTimbangan,b.KodeKelas,b.KodeUkuran) 
+												// join lokasimilikperson f on (b.KodeLokasi,b.IDPerson)=(f.KodeLokasi,f.IDPerson) 
+												// WHERE b.IDPerson= ? GROUP BY b.IDTimbangan");
+												$sql = "SELECT b.NamaTimbangan,d.NamaKelas,e.NamaUkuran,c.JenisTimbangan,f.NamaLokasi,b.IDPerson,b.IDTimbangan 
 												FROM timbanganperson b 
 												join msttimbangan c on c.KodeTimbangan=b.KodeTimbangan 
 												join kelas d on (b.KodeTimbangan,b.KodeKelas)=(d.KodeTimbangan,d.KodeKelas) 
 												join detilukuran e on (e.KodeTimbangan,e.KodeKelas,e.KodeUkuran)=(b.KodeTimbangan,b.KodeKelas,b.KodeUkuran) 
 												join lokasimilikperson f on (b.KodeLokasi,b.IDPerson)=(f.KodeLokasi,f.IDPerson) 
-												WHERE b.IDPerson='".$RowData['IDPerson']."' GROUP BY b.IDTimbangan");
+												WHERE b.IDPerson= ? GROUP BY b.IDTimbangan";
+												$stmt = $koneksi->prepare($sql1);
+												$okeloh = $RowData['IDPerson'];
+												$stmt->bind_param("s", $okeloh);
+												$stmt->execute();
+												$sql = $stmt->get_result();
 												$no_urut = 0;
 												$count = mysqli_num_rows($sql);
 												if($count == null OR $count === 0){
@@ -191,7 +212,13 @@ if(@$_GET['id']!=null){
 										  </thead>
 										  <tbody>
 											<?php
-												$sql =mysqli_query($koneksi, "SELECT a.BlokLapak,a.NomorLapak,a.Retribusi,b.NamaPasar,b.NamaKepalaPasar,a.IDLapak,c.NoRekBank,c.IDPerson,a.KodePasar,c.IsAktif FROM lapakpasar a join mstpasar b on a.KodePasar=b.KodePasar join lapakperson c on (c.IDLapak,c.KodePasar)=(a.IDLapak,a.KodePasar) where c.IDPerson='".$RowData['IDPerson']."' order by b.NamaPasar");
+												// $sql =mysqli_query($koneksi, "SELECT a.BlokLapak,a.NomorLapak,a.Retribusi,b.NamaPasar,b.NamaKepalaPasar,a.IDLapak,c.NoRekBank,c.IDPerson,a.KodePasar,c.IsAktif FROM lapakpasar a join mstpasar b on a.KodePasar=b.KodePasar join lapakperson c on (c.IDLapak,c.KodePasar)=(a.IDLapak,a.KodePasar) where c.IDPerson='".$RowData['IDPerson']."' order by b.NamaPasar");
+												$sql2 = "SELECT a.BlokLapak,a.NomorLapak,a.Retribusi,b.NamaPasar,b.NamaKepalaPasar,a.IDLapak,c.NoRekBank,c.IDPerson,a.KodePasar,c.IsAktif FROM lapakpasar a join mstpasar b on a.KodePasar=b.KodePasar join lapakperson c on (c.IDLapak,c.KodePasar)=(a.IDLapak,a.KodePasar) where c.IDPerson= ? order by b.NamaPasar";
+												$stmt = $koneksi->prepare($sql2);
+												$okegas = $RowData['IDPerson'];
+												$stmt->bind_param("s", $okegas);
+												$stmt->execute();
+												$sql = $stmt->get_result();
 												$no_urut = 0;
 												$count = mysqli_num_rows($sql);
 												if($count == null OR $count === 0){
@@ -227,7 +254,13 @@ if(@$_GET['id']!=null){
 										
 									
 									<?php
-										$sql =mysqli_query($koneksi, "SELECT IDPerson,NamaPerson,AlamatLengkapPerson From mstperson where PJPerson ='".$RowData['IDPerson']."' and JenisPerson LIKE '%PupukSub%'");
+										// $sql =mysqli_query($koneksi, "SELECT IDPerson,NamaPerson,AlamatLengkapPerson From mstperson where PJPerson ='".$RowData['IDPerson']."' and JenisPerson LIKE '%PupukSub%'");
+										$sqlku = "SELECT IDPerson,NamaPerson,AlamatLengkapPerson From mstperson where PJPerson = ? and JenisPerson LIKE '%PupukSub%'";
+										$stmt = $koneksi->prepare($sqlku);
+										$koe = $RowData['IDPerson'];
+										$stmt->bind_param("s", $koe);
+										$stmt->execute();
+										$sql = $stmt->get_result();
 										$no_urut = 0;
 										$count = mysqli_num_rows($sql);
 										if($count != null OR $count != 0){
@@ -279,7 +312,13 @@ if(@$_GET['id']!=null){
 									
 									<?php } ?>
 									<?php
-										$sql =mysqli_query($koneksi, "SELECT IDPerson,NamaPerson,AlamatLengkapPerson From mstperson where PJPerson ='".$RowData['IDPerson']."' and JenisPerson LIKE '%Toko%'");
+										// $sql =mysqli_query($koneksi, "SELECT IDPerson,NamaPerson,AlamatLengkapPerson From mstperson where PJPerson ='".$RowData['IDPerson']."' and JenisPerson LIKE '%Toko%'");
+										$sql2 = "SELECT IDPerson,NamaPerson,AlamatLengkapPerson From mstperson where PJPerson = ? and JenisPerson LIKE '%Toko%'";
+										$koeku = $RowData['IDPerson'];
+										$stmt = $koneksi->prepare($sql2);
+										$stmt->bind_param("s", $koeku);
+										$stmt->execute();
+										$sql = $stmt->get_result();
 										$no_urut = 0;
 										$count = mysqli_num_rows($sql);
 										if($count != null OR $count != 0){
@@ -417,7 +456,17 @@ if(@$_GET['id']!=null){
 	//Simpan Transaksi Sidang Tera
 	if(isset($_POST['SimpanTransaksi'])){
 		//update 
-		$query = mysqli_query($koneksi,"UPDATE tractiontimbangan SET TglDibayar='$TanggalTransaksi', NoRefDibayar='$NoRefDibayar', KeteranganBayar='$Keterangan', IsDibayar='$IsDibayar' WHERE NoTransaksi='$NoTransaksi'");
+		// $query = mysqli_query($koneksi,"UPDATE tractiontimbangan SET TglDibayar='$TanggalTransaksi', NoRefDibayar='$NoRefDibayar', KeteranganBayar='$Keterangan', IsDibayar='$IsDibayar' WHERE NoTransaksi='$NoTransaksi'");
+		$sql3 = "UPDATE tractiontimbangan SET TglDibayar= ? , NoRefDibayar= ?, KeteranganBayar= ?, IsDibayar= ? WHERE NoTransaksi= ? ";
+		$aa = $TanggalTransaksi;
+		$ab = $NoRefDibayar;
+		$ac = $Keterangan;
+		$ad = $IsDibayar;
+		$ae = $NoTransaksi;
+		$stmt = $koneksi->prepare($sql3);
+		$stmt->bind_param("sssss", $aa, $ab, $ac, $ad, $ae);
+		$stmt->execute();
+		$query = $stmt->get_result();
 		if ($query){
 			InsertLog($koneksi, 'Tambah Data', 'Transaksi Terima Pembayaran ', $login_id, $NoTransaksi, 'Transaksi Terima Pembayaran');
 			echo '<script language="javascript">document.location="TrTerimaPembayaran.php";</script>';
@@ -450,7 +499,13 @@ if(@$_GET['id']!=null){
 		unlink("../images/TeraTimbangan/thumb_".$data['FotoAction3']."");
 		
 		//update 
-		$edit = mysqli_query($koneksi,"UPDATE trtimbanganitem SET  FotoAction1=NULL, FotoAction2=NULL, FotoAction3=NULL, HasilAction1=NULL, HasilAction2=NULL, HasilAction3=NULL WHERE NoTransaksi='".htmlspecialchars(base64_decode(@$_GET['tr']))."'");
+		// $edit = mysqli_query($koneksi,"UPDATE trtimbanganitem SET  FotoAction1=NULL, FotoAction2=NULL, FotoAction3=NULL, HasilAction1=NULL, HasilAction2=NULL, HasilAction3=NULL WHERE NoTransaksi='".htmlspecialchars(base64_decode(@$_GET['tr']))."'");
+		$sql4 = "UPDATE trtimbanganitem SET  FotoAction1=NULL, FotoAction2=NULL, FotoAction3=NULL, HasilAction1=NULL, HasilAction2=NULL, HasilAction3=NULL WHERE NoTransaksi= ? ";
+		$oekgas02 = htmlspecialchars(base64_decode(@$_GET['tr']));
+		$stmt = $koneksi->prepare($sql4);
+		$stmt->bind_param("s", $oekgas02);
+		$stmt->execute();
+		$edit = $stmt->get_result();
 		if($edit){
 			InsertLog($koneksi, 'Hapus Data', 'Menghapus Data Transaksi Penerimaan Timbangan', $login_id, base64_decode(@$_GET['tr']), 'Transaksi Proses Sidang Tera');
 			echo '<script language="javascript">document.location="TrSidangTera.php"; </script>';
@@ -470,10 +525,23 @@ if(@$_GET['id']!=null){
 	}
 	
 	if(base64_decode(@$_GET['aksi'])=='Hapus'){
-		$HapusGambar = mysqli_query($koneksi,"SELECT FotoAction1,FotoAction2,FotoAction3 FROM trtimbanganitem WHERE NoTransaksi='".htmlspecialchars(base64_decode($_GET['id']))."' and NoUrutTrans='".htmlspecialchars(base64_decode($_GET['nm']))."'");
+		// $HapusGambar = mysqli_query($koneksi,"SELECT FotoAction1,FotoAction2,FotoAction3 FROM trtimbanganitem WHERE NoTransaksi='".htmlspecialchars(base64_decode($_GET['id']))."' and NoUrutTrans='".htmlspecialchars(base64_decode($_GET['nm']))."'");
+		$sql5 = "SELECT FotoAction1,FotoAction2,FotoAction3 FROM trtimbanganitem WHERE NoTransaksi= ? and NoUrutTrans= ? ";
+		$kooo = htmlspecialchars(base64_decode($_GET['id']));
+		$koegas = htmlspecialchars(base64_decode($_GET['nm']));
+		$stmt = $koneksi->prepare($sql5);
+		$stmt->bind_param("si", $kooo, $koegas);
+		$result= $stmt->get_result();
+		$HapusGambar = $result->fetch_assoc();
 		$data=mysqli_fetch_array($HapusGambar);
-		
-		$query = mysqli_query($koneksi,"update trtimbanganitem set FotoAction1=NULL, FotoAction2=NULL, FotoAction3=NULL, HasilAction1=NULL, HasilAction2=NULL, HasilAction3=NULL  WHERE  NoTransaksi='".htmlspecialchars(base64_decode($_GET['id']))."' and NoUrutTrans='".htmlspecialchars(base64_decode($_GET['nm']))."'");
+		// $query = mysqli_query($koneksi,"update trtimbanganitem set FotoAction1=NULL, FotoAction2=NULL, FotoAction3=NULL, HasilAction1=NULL, HasilAction2=NULL, HasilAction3=NULL  WHERE  NoTransaksi='".htmlspecialchars(base64_decode($_GET['id']))."' and NoUrutTrans='".htmlspecialchars(base64_decode($_GET['nm']))."'");
+		$sql6 = "update trtimbanganitem set FotoAction1=NULL, FotoAction2=NULL, FotoAction3=NULL, HasilAction1=NULL, HasilAction2=NULL, HasilAction3=NULL  WHERE  NoTransaksi= ? and NoUrutTrans= ? ";
+		$toranggas = htmlspecialchars(base64_decode($_GET['id']));
+		$oke02 = htmlspecialchars(base64_decode($_GET['nm']));
+		$stmt = $koneksi->prepare($sql6);
+		$stmt->bind_param("si", $toranggas, $oke02);
+		$stmt->execute();
+		$query = $stmt->get_result();
 		if($query){
 			//hapus gambar terlebih dahulu
 		
@@ -504,7 +572,18 @@ if(@$_GET['id']!=null){
 	//Simpan Edit Item Timbangan
 	if(isset($_POST['SimpanEdit'])){
 		//update 
-		$query = mysqli_query($koneksi,"UPDATE trtimbanganitem SET HasilAction1='$HasilAction1', HasilAction2='$HasilAction2', HasilAction3='$HasilAction3' WHERE NoTransaksi='$NoTransaksi' and NoUrutTrans='$NoUrutTrans'");
+		// $query = mysqli_query($koneksi,"UPDATE trtimbanganitem SET HasilAction1='$HasilAction1', HasilAction2='$HasilAction2', HasilAction3='$HasilAction3' WHERE NoTransaksi='$NoTransaksi' and NoUrutTrans='$NoUrutTrans'");
+		$sql7 = "UPDATE trtimbanganitem SET HasilAction1= ?, HasilAction2= ?, HasilAction3= ? WHERE NoTransaksi= ? and NoUrutTrans= ? ";
+		$bb = $HasilAction1;
+		$bc = $HasilAction2;
+		$bd = $HasilAction3;
+		$be = $NoTransaksi;
+		$bf = $NoUrutTrans;
+		$stmt = $koneksi->prepare($sql7);
+		$stmt->bind_param("ssssi", $bb, $bc, $bd, $be, $bf);
+		$stmt->execute();
+		$result = $stmt->get_result();
+		$query = $result->fetch_assoc();
 		if ($query){
 			InsertLog($koneksi, 'Edit Data', 'Mengubah Transaksi Hasil Sidang Tera ', $login_id, $NoTransaksi, 'Transaksi Proses Sidang Tera');
 			echo '<script language="javascript">document.location="TrSidangTera.php?NoTransaksi='.$NoTransaksi.'";</script>';
