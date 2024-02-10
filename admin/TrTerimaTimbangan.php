@@ -1,49 +1,33 @@
 <?php
 include 'akses.php';
-@$fitur_id = 13;
+@$fitur_id = 16;
 include '../library/lock-menu.php';
 @include '../library/tgl-indo.php';
 $Page = 'TrMetrologi';
-$SubPage = 'TrTerimaTimbangan';
+$SubPage = 'TrTerimaPembayaran';
+$TanggalTransaksi = date("Y-m-d H:i:s");
 $Tanggal = date('Ymd');
 
 if(@$_GET['id']!=null){
-	$Sebutan = 'Data Penerimaan Timbangan';	
+	$Sebutan = 'Terima Pembayaran';	
 	$Readonly = 'readonly';
 
-	$query = "SELECT a.NamaPerson, b.IDPerson, b.NoTransaksi, c.IDTimbangan, b.TglTransaksi, b.Keterangan 
-			FROM mstperson a 
-			JOIN tractiontimbangan b ON a.IDPerson = b.IDPerson 
-			LEFT JOIN trtimbanganitem c ON b.NoTransaksi = c.NoTransaksi 
-			WHERE b.NoTransaksi = ?";
+	$id = base64_decode($_GET['id']);
 
-	$decoded_id = base64_decode($_GET['id']);
+	$query = mysqli_prepare($koneksi, "SELECT a.NamaPerson, b.IDPerson, b.NoTransaksi, c.IDTimbangan, b.TglTransaksi, b.NoRefDibayar, b.KeteranganBayar, b.IsDibayar, b.NoSKRD FROM mstperson a JOIN tractiontimbangan b ON a.IDPerson = b.IDPerson LEFT JOIN trtimbanganitem c ON b.NoTransaksi = c.NoTransaksi WHERE b.NoTransaksi = ?");
 
-	if ($stmt = mysqli_prepare($koneksi, $query)) {
-		mysqli_stmt_bind_param($stmt, "s", $decoded_id);
+	mysqli_stmt_bind_param($query, 's', $id);
 
-		mysqli_stmt_execute($stmt);
+	mysqli_stmt_execute($query);
 
-		mysqli_stmt_bind_result($stmt, $NamaPerson, $IDPerson, $NoTransaksi, $IDTimbangan, $TglTransaksi, $Keterangan);
+	$result = mysqli_stmt_get_result($query);
 
-		mysqli_stmt_fetch($stmt);
+	$rowData = mysqli_fetch_assoc($result);
 
-		$RowData = array(
-			'NamaPerson' => $NamaPerson,
-			'IDPerson' => $IDPerson,
-			'NoTransaksi' => $NoTransaksi,
-			'IDTimbangan' => $IDTimbangan,
-			'TglTransaksi' => $TglTransaksi,
-			'Keterangan' => $Keterangan
-		);
-
-		mysqli_stmt_close($stmt);
-	} else {
-		echo "Maaf terjadi error: " . mysqli_error($koneksi);
-	}
-
+	mysqli_stmt_close($query);
+	
 	// source code lama
-	// @$Edit = mysqli_query($koneksi,"SELECT a.NamaPerson,b.IDPerson,b.NoTransaksi,c.IDTimbangan,b.TglTransaksi,b.Keterangan FROM mstperson a join tractiontimbangan b on a.IDPerson=b.IDPerson left join trtimbanganitem c on b.NoTransaksi=c.NoTransaksi WHERE b.NoTransaksi='".htmlspecialchars(base64_decode($_GET['id']))."'");
+	// @$Edit = mysqli_query($koneksi,"SELECT a.NamaPerson,b.IDPerson,b.NoTransaksi,c.IDTimbangan,b.TglTransaksi,b.NoRefDibayar,b.KeteranganBayar,b.IsDibayar,b.NoSKRD	 FROM mstperson a join tractiontimbangan b on a.IDPerson=b.IDPerson left join trtimbanganitem c on b.NoTransaksi=c.NoTransaksi WHERE b.NoTransaksi='".base64_decode($_GET['id'])."'");
 	// @$RowData = mysqli_fetch_assoc($Edit);
 }else{
 	$Sebutan = 'Tambah Data';	
@@ -75,9 +59,6 @@ if(@$_GET['id']!=null){
     <link rel="stylesheet" href="../library/sweetalert/sweetalert.css" rel="stylesheet">
 	<!-- Datepcker -->
 	<link rel="stylesheet" href="../library/Datepicker/dist/css/default/zebra_datepicker.min.css" type="text/css">
-	<!-- Select2Master -->
-	<link rel="stylesheet" href="../library/select2master/css/select2.css"/>
-	<link rel="stylesheet" type="text/css" href="../library/datatables/datatables.min.css"/>
 	<style>
 	th {
 		text-align: center;
@@ -90,13 +71,13 @@ if(@$_GET['id']!=null){
 		top: 11px !important;
 		right: 12px;
 	}
-
+	
 	</style>
 	<script type="text/javascript">
 		function confirmation() {
 			var answer = confirm("Apakah Anda yakin menghapus data ini ?")
 			if (answer == true){
-				window.location = "TrTerimaTimbangan.php";
+				window.location = "TrTerimaPembayaran.php";
 				}
 			else{
 			alert("Terima Kasih !");	return false; 	
@@ -115,7 +96,7 @@ if(@$_GET['id']!=null){
           <!-- Page Header-->
           <header class="page-header">
             <div class="container-fluid">
-              <h2 class="no-margin-bottom">Penerimaan Timbangan User</h2>
+              <h2 class="no-margin-bottom">Terima Pembayaran SKRD</h2>
             </div>
           </header>
           <!-- Dashboard Counts Section-->
@@ -124,24 +105,17 @@ if(@$_GET['id']!=null){
                 <div class="col-lg-12">
 					<ul class="nav nav-pills">
 						<li <?php if(@$id==null){echo 'class="active"';} ?>>
-							<a href="#home-pills" data-toggle="tab"><span class="btn btn-primary">Data Penerimaan</span></a>&nbsp;
+							<a href="#home-pills" data-toggle="tab"></a>&nbsp;
 						</li>
 						<li>
-							<?php if ($cek_fitur['AddData'] =='1'){ ?>
-								<!--<a href="#tambah-user" data-toggle="tab"><span class="btn btn-primary">Entry Transaksi</span></a>&nbsp;-->
-							<?php } ?>
+							<a href="#tambah-user" data-toggle="tab"></a>&nbsp;
 						</li>
-						<li>
-							<?php if ($cek_fitur['AddData'] =='1'){ ?>
-								<a href="TrTerimaTimbangan_tambah.php"><span class="btn btn-primary">Entry Transaksi</span></a>&nbsp;
-							<?php } ?>
-						</li>
-					</ul><br/>
+					</ul>
 				  <div class="card">
 					<div class="tab-content">
 						<div class="tab-pane fade <?php if(@$_GET['id']==null){ echo 'in active show'; }?>" id="home-pills">
 							<div class="card-header d-flex align-items-center">
-							  <h3 class="h4">Penerimaan Timbangan</h3>
+							  <h3 class="h4">Terima Pembayaran</h3>
 							</div>
 							<div class="card-body">							  
 								<div class="col-lg-4 offset-lg-8">
@@ -161,67 +135,64 @@ if(@$_GET['id']!=null){
 									  <th>No</th>
 									  <th>Nama</th>
 									  <th>Alamat</th>
-									  <!--<th>Jumlah Retribusi</th>-->
+									  <th>Jumlah Retribusi</th>
 									  <th>Aksi</th>
 									</tr>
 								  </thead>
 									<?php
 										include '../library/pagination1.php';
 										// mengatur variabel reload dan sql
-										$reload = "TrTerimaTimbangan.php?pagination=true";
+										$reload = "TrTerimaPembayaran.php?pagination=true";
 
 										$sql = "SELECT a.NoTransaksi, b.NamaPerson, b.AlamatLengkapPerson, b.IDPerson, a.TotalRetribusi, a.TglTransaksi 
 												FROM tractiontimbangan a 
 												JOIN mstperson b ON a.IDPerson = b.IDPerson 
 												WHERE b.JenisPerson LIKE '%Timbangan%' 
-												AND (a.StatusTransaksi = 'PENERIMAAN' OR a.StatusTransaksi = 'PRAWAITING') 
-												AND a.JenisTransaksi = 'TERA DI KANTOR' ";
+												AND (a.IsDibayar = b'0' OR a.IsDibayar IS NULL) 
+												AND (a.StatusTransaksi = 'PENERIMAAN' OR a.StatusTransaksi = 'PROSES SIDANG' OR a.StatusTransaksi = 'SELESAI')";
 
-										if(isset($_REQUEST['keyword']) && !empty($_REQUEST['keyword'])) {
-											$keyword = "%" . $_REQUEST['keyword'] . "%";
+										// source code lama
+										// $sql =  "SELECT a.NoTransaksi,b.NamaPerson,b.AlamatLengkapPerson,b.IDPerson,a.TotalRetribusi,a.TglTransaksi FROM tractiontimbangan a join mstperson b on a.IDPerson=b.IDPerson Where b.JenisPerson LIKE '%Timbangan%' AND (a.IsDibayar=b'0' OR a.IsDibayar is null) AND (a.StatusTransaksi='PENERIMAAN' OR a.StatusTransaksi='PROSES SIDANG' OR a.StatusTransaksi='SELESAI') ";
+										
+										if (!empty($_REQUEST['keyword'])) {
 											$sql .= " AND b.NamaPerson LIKE ?";
 										}
 
-										$sql .= " ORDER BY a.TglTransaksi ASC";
-										// Prepare the statement
-										$stmt = mysqli_prepare($koneksi, $sql);
-										// Bind parameter if keyword is provided
-										if(isset($keyword)) {
-											mysqli_stmt_bind_param($stmt, "s", $keyword);
-										}
-										// Execute the statement
-										mysqli_stmt_execute($stmt);
-
-										// Store the result
-										$result = mysqli_stmt_get_result($stmt);
-
-										// Get the total number of rows
-										$tcount = mysqli_num_rows($result);
-
-										$rpp = 20; // jumlah record per halaman
-										$page = intval(@$_GET["page"]);
-										if($page <= 0) $page = 1;
-
-										$tpages = ($tcount) ? ceil($tcount/$rpp) : 1; // total pages, last page number
-
-										$count = 0;
-										$i = ($page-1) * $rpp;
-										$no_urut = ($page-1) * $rpp;
-										
-										// $sql =  "SELECT a.NoTransaksi,b.NamaPerson,b.AlamatLengkapPerson,b.IDPerson,a.TotalRetribusi,a.TglTransaksi FROM tractiontimbangan a join mstperson b on a.IDPerson=b.IDPerson Where b.JenisPerson LIKE '%Timbangan%' AND (a.StatusTransaksi='PENERIMAAN' OR a.StatusTransaksi='PRAWAITING' ) AND a.JenisTransaksi='TERA DI KANTOR' ";
-										
+										// source code lama
 										// if(@$_REQUEST['keyword']!=null){
 										// 	$sql .= " AND b.NamaPerson LIKE '%".$_REQUEST['keyword']."%'  ";
 										// }
+
+										$sql .= " ORDER BY a.TglTransaksi DESC";
+										$query = mysqli_prepare($koneksi, $sql);
+
+										if (!empty($_REQUEST['keyword'])) {
+											$keyword = '%' . $_REQUEST['keyword'] . '%';
+											mysqli_stmt_bind_param($query, 's', $keyword);
+										}
 										
-										// $sql .=" ORDER BY a.TglTransaksi ASC";
+										mysqli_stmt_execute($query);
+										$result = mysqli_stmt_get_result($query);
+										$tcount = mysqli_num_rows($result);
+
+										$rpp = 20; // Number of records per page
+										$page = isset($_GET["page"]) ? intval($_GET["page"]) : 1;
+										if ($page <= 0) $page = 1;
+										$tpages = $tcount ? ceil($tcount / $rpp) : 1; // Total pages
+										$count = 0;
+										$i = ($page - 1) * $rpp;
+										$no_urut = ($page - 1) * $rpp;
+
+
+										// source code lama
+										// $sql .=" ORDER BY a.TglTransaksi DESC";
 										// $result = mysqli_query($koneksi,$sql);
-										
+						
 										//pagination config start
+										// @$tcount = mysqli_num_rows($result);
 										// $rpp = 20; // jumlah record per halaman
 										// $page = intval(@$_GET["page"]);
 										// if($page<=0) $page = 1;  
-										// @$tcount = mysqli_num_rows($result);
 										// $tpages = ($tcount) ? ceil($tcount/$rpp) : 1; // total pages, last page number
 										// $count = 0;
 										// $i = ($page-1)*$rpp;
@@ -233,14 +204,9 @@ if(@$_GET['id']!=null){
 										if($tcount == null OR $tcount === 0){
 											echo '<tr class="odd gradeX"><td colspan="9" align="center"><strong>Tidak ada data</strong></td></tr>';
 										} else {
-											while(($count < $rpp) && ($i < $tcount)) {
-												mysqli_data_seek($result, $i);
+											while(($count<$rpp) && ($i<$tcount)) {
+												mysqli_data_seek($result,$i);
 												@$data = mysqli_fetch_array($result);
-											
-											// source code lama
-											// while(($count<$rpp) && ($i<$tcount)) {
-											// 	mysqli_data_seek($result,$i);
-											// 	@$data = mysqli_fetch_array($result);
 											
 										?>
 										<tr class="odd gradeX">
@@ -255,26 +221,22 @@ if(@$_GET['id']!=null){
 											<td>
 												<?php echo $data ['AlamatLengkapPerson']; ?>
 											</td>
-											<!--<td align="center">
+											<td align="center">
 												<?php echo "Rp ".number_format($data['TotalRetribusi']); ?>
-											</td>-->
+											</td>
 											<td width="100px" align="center">
-												<?php if ($cek_fitur['EditData'] =='1'){ ?>
-													<a href="TrTerimaTimbangan.php?id=<?php echo base64_encode($data['NoTransaksi']);?>" title='Edit'><i class='btn btn-warning btn-sm'><span class='fa fa-edit'></span></i></a> 
+												<?php if ($cek_fitur['ViewData'] =='1'){ ?>
+													<a href="TrTerimaPembayaran.php?id=<?php echo base64_encode($data['NoTransaksi']);?>" title='Terima Bayar'><i class='btn btn-info btn-sm'><span class='fa fa-eye'></span></i></a> 
+													
+													<!-- Tombol Print Data Timbangan Per user-->		
+													<a href="../library/html2pdf/cetak/PrintSKRD.php?id=<?php echo base64_encode($data['NoTransaksi']); ?>"  target="_BLANK" title="Cetak SKRD" ><i class="btn btn-secondary btn-sm"><span class="fa fa-print"></span></i></a>
 												<?php } ?>
-											
-												<?php if ($cek_fitur['DeleteData'] =='1'){ ?>
-												<!-- Tombol Detil Data Timbangan Per user-->		
-													<a href="TrTerimaTimbangan.php?tr=<?php echo base64_encode($data['NoTransaksi']);?>&aksi=<?php echo base64_encode('HapusTransaksi');?>" title="Hapus" onclick="return confirmation()"><i class="btn btn-danger btn-sm"><span class="fa fa-trash"></span></i></a>
-												<?php } ?>
-											
 											</td>
 										</tr>
 										<?php
-												$i++; 
-												$count++;
+											$i++; 
+											$count++;
 											} 
-											mysqli_stmt_close($stmt);
 										}
 										
 										?>
@@ -284,149 +246,114 @@ if(@$_GET['id']!=null){
 							  </div>
 							</div>
 						</div>
-						<div class="tab-pane fade <?php if(@$_GET['id']!=null){ echo 'in active show'; }?>" id="tambah-user">
+						<div class="tab-pane fade <?php if(@$_GET['id'] != null ){ echo 'in active show'; }?>" id="tambah-user">
 							<div class="card-header d-flex align-items-center">
 							  <h3 class="h4"><?php echo $Sebutan; ?></h3>
 							</div>
 							<div class="card-body">
 								<div class="row">
 								  <div class="col-lg-12">
-									<h5>Pilih User Pemohon</h5>
-									<form method="post" action="">
-									<div class="form-group-material">
-										<div class="input-group">
-											<br><input type="hidden" name="NoTrMohon" value="<?php echo @$No_Transaksi; ?>">
-											<br><input type="hidden" name="IDPerson"  value="<?php echo @$RowData['IDPerson']; ?>" id="id">
-											<input type="text" class="form-control" id="nama" placeholder="Pilih Person"  value="<?php echo  @$RowData['NamaPerson']; ?>" readonly="" />
-											<div class="input-group-append">
-											<?php 
-												if(@$_GET['id'] != 0 OR @$_GET['id'] != null){ 		
-													echo ' <input type="hidden" name="NoTransaksi" value="'.$RowData['NoTransaksi'].'">';
-													echo '<button type="submit" class="btn btn-primary" name="GantiUser">Pilih User</button>';
-												}else{
-													echo '<button type="submit" class="btn btn-primary" name="SimpanUser">Pilih User</button>';
-												}
-											?>
-											</div>
-										</div>
-									</div>
-									</form><hr>
-									<?php if (@$_GET['id']!=null) { ?>
-									<h5>Detil Timbangan <?php echo $RowData['NamaPerson']; ?></h5>
+									<h5>Informasi Transaksi</h5>
+									<div class="table-responsive">  
+									<table class="table table-striped">
+									  <tbody>
+										<tr><td width="35%">Nama Lengkap</td><td width="1%">:</td><td><?php echo strtoupper($RowData['NamaPerson']);?></td></tr>
+										<tr><td width="35%">No Transaksi</td><td width="1%">:</td><td><?php echo $RowData['NoTransaksi'];?></td></tr>
+										<tr><td>Tanggal Transaksi</td><td>:</td><td><?php echo TanggalIndo($RowData['TglTransaksi']);?></td></tr>
+									  </tbody>
+									</table>
+									</div><hr>
+									
+									<h5>Detil Timbangan</h5>
 										<div class="table-responsive">  
 										<table class="table table-striped">
 										  <thead>
 											<tr>
-											  <th>Aksi</th>
 											  <th>No</th>
 											  <th>Nama Timbangan</th>
 											  <th>Alamat</th>
+											  <th>Hasil Tera</th>
+											  <th>Tarif Retribusi</th>
 											</tr>
 										  </thead>
 										  <tbody>
 											<?php
-												$sql = "SELECT a.NominalRetribusi, b.NamaTimbangan, d.NamaKelas, e.NamaUkuran, c.JenisTimbangan, f.NamaLokasi, 
-														a.NoUrutTrans, a.NoTransaksi, a.IDPerson 
-														FROM trtimbanganitem a 
-														JOIN timbanganperson b ON (a.IDTimbangan, a.KodeLokasi, a.IDPerson) = (b.IDTimbangan, b.KodeLokasi, b.IDPerson) 
-														JOIN msttimbangan c ON c.KodeTimbangan = b.KodeTimbangan 
-														JOIN kelas d ON (b.KodeTimbangan, b.KodeKelas) = (d.KodeTimbangan, d.KodeKelas) 
-														JOIN detilukuran e ON (e.KodeTimbangan, e.KodeKelas, e.KodeUkuran) = (b.KodeTimbangan, b.KodeKelas, b.KodeUkuran) 
-														JOIN lokasimilikperson f ON (b.KodeLokasi, b.IDPerson) = (f.KodeLokasi, f.IDPerson) 
-														WHERE a.NoTransaksi = ? 
-														GROUP BY b.IDTimbangan, a.NoUrutTrans 
-														ORDER BY a.NoUrutTrans";
-
-												$noTransaksi = $RowData['NoTransaksi'];
-
-												$stmt = mysqli_prepare($koneksi, $sql);
-												mysqli_stmt_bind_param($stmt, "s", $noTransaksi);
-
-												mysqli_stmt_execute($stmt);
-
-												$result = mysqli_stmt_get_result($stmt);
-
-												$count = mysqli_num_rows($result);
-
+												$sql =mysqli_query($koneksi, "SELECT a.NominalRetribusi,b.NamaTimbangan,d.NamaKelas,e.NamaUkuran,c.JenisTimbangan,f.NamaLokasi,a.NoUrutTrans,a.NoTransaksi,a.IDPerson,a.HasilAction1 FROM trtimbanganitem a join timbanganperson b on  (a.IDTimbangan,a.KodeLokasi,a.IDPerson)=(b.IDTimbangan,b.KodeLokasi,b.IDPerson)  join msttimbangan c on c.KodeTimbangan=b.KodeTimbangan join kelas d on (b.KodeTimbangan,b.KodeKelas)=(d.KodeTimbangan,d.KodeKelas) join detilukuran e on (e.KodeTimbangan,e.KodeKelas,e.KodeUkuran)=(b.KodeTimbangan,b.KodeKelas,b.KodeUkuran) join lokasimilikperson f on (b.KodeLokasi,b.IDPerson)=(f.KodeLokasi,f.IDPerson) WHERE a.NoTransaksi='".$RowData['NoTransaksi']."' GROUP BY b.IDTimbangan,a.NoUrutTrans order by a.NoUrutTrans");
+												$no_urut = 0;
+												$count = mysqli_num_rows($sql);
 												if($count == null OR $count === 0){
 													echo '<tr class="odd gradeX"><td colspan="9" align="center"><b>Tidak Ada Data</b></td></tr>';
 												} else {
-													while($res = mysqli_fetch_array($result)){
-
-												// source code lama
-												// $sql =mysqli_query($koneksi, "SELECT a.NominalRetribusi,b.NamaTimbangan,d.NamaKelas,e.NamaUkuran,c.JenisTimbangan,f.NamaLokasi,a.NoUrutTrans,a.NoTransaksi,a.IDPerson FROM trtimbanganitem a 
-												// join timbanganperson b on (a.IDTimbangan,a.KodeLokasi,a.IDPerson)=(b.IDTimbangan,b.KodeLokasi,b.IDPerson) 
-												// join msttimbangan c on c.KodeTimbangan=b.KodeTimbangan 
-												// join kelas d on (b.KodeTimbangan,b.KodeKelas)=(d.KodeTimbangan,d.KodeKelas) 
-												// join detilukuran e on (e.KodeTimbangan,e.KodeKelas,e.KodeUkuran)=(b.KodeTimbangan,b.KodeKelas,b.KodeUkuran) 
-												// join lokasimilikperson f on (b.KodeLokasi,b.IDPerson)=(f.KodeLokasi,f.IDPerson) 
-												// WHERE a.NoTransaksi='".$RowData['NoTransaksi']."' 
-												// GROUP BY b.IDTimbangan,a.NoUrutTrans order by a.NoUrutTrans ");
-												// $no_urut = 0;
-												// $count = mysqli_num_rows($sql);
-												// if($count == null OR $count === 0){
-												// 	echo '<tr class="odd gradeX"><td colspan="9" align="center"><b>Tidak Ada Data</b></td></tr>';
-												// } else {
-												// 	while($res = mysqli_fetch_array($sql)){
+													while($res = mysqli_fetch_array($sql)){
 											?>
 											<tr class="odd gradeX">
-												<td width="90px">
-													<!-- Tombol Hapus Data Timbangan Per user-->											
-													<a href="TrTerimaTimbangan.php?id=<?php echo base64_encode($res['NoTransaksi']); ?>&aksi=<?php echo base64_encode('Hapus'); ?>&nm=<?php echo base64_encode($res['NoUrutTrans']);  ?>" title="Hapus" onclick="return confirmation()"><i class="btn btn-danger btn-sm"><span class="fa fa-ban"></span></i></a>
-													<!-- Tombol Edit Data Timbangan Per user-->
-													<a href="#" class='open_modal_item' data-notransaksi='<?php echo $res['NoTransaksi'];?>' data-idperson='<?php echo $res['IDPerson'];?>' data-user='<?php echo $login_id; ?>' data-nourut='<?php echo $res['NoUrutTrans']; ?>' data-aksi='<?php echo 'Edit'; ?>'><span class="btn btn-warning btn-sm fa fa-edit" title="Edit Item Timbangan" ></span></a>
-													
-													
-												</td>
 												<td width="50px">
 													<?php echo ++$no_urut;?> 
 												</td>
 												<td>
 													<?php echo "<strong>".$res['NamaTimbangan']."</strong> ".$res['NamaKelas']." ".$res['NamaUkuran']; ?>
 												</td>
-												
 												<td>
 													<?php echo $res['NamaLokasi']; ?>
 												</td>
-												
+												<td>
+													<?php echo $res['HasilAction1']; ?>
+												</td>
+												<td align="right">
+													<?php 
+														echo "<strong>".number_format($res ['NominalRetribusi'])."</strong>"; 
+														$jumlah[] = $res['NominalRetribusi'];
+													?>
+												</td>
 											</tr>
 												<?php } ?>
-											<!--<tr>
-												<td colspan="3" align="center">
-													<p>Total Retribusi</p>
+											<tr style="background-color:#f0f0f0;">
+												<td colspan="4" align="center">
+													<strong>Total Retribusi</strong>
 												</td>
 												<td align="right">
 													<?php echo number_format(array_sum(@$jumlah)); ?>
 												</td>
-											</tr>-->	
-											<?php mysqli_stmt_close($stmt); } ?>
-											<tr style="background-color:white;">
-												<td colspan="9" align="right">
-												<a href="#" class='open_modal_item' data-notransaksi='<?php echo $RowData['NoTransaksi'];?>' data-idperson='<?php echo $RowData['IDPerson'];?>' data-user='<?php echo $login_id; ?>'><span class="btn btn-secondary " title="Tambah Item Timbangan">Tambah</span></a>
-												</td>
-											</tr>
+											</tr>	
+											<?php } ?>
 										  </tbody>
 										</table>
 									</div><hr>	
 									</div>
 									<div class="col-lg-12">
 										<div class="text-left">
-											<form action="" method="post"  class="form-horizontal">
+											<form method="post" action="" class="form-horizontal">
+												<!--<div class="form-group row">
+												  <label class="col-sm-3 form-control-label">No Referensi Pembayaran</label>
+												  <div class="col-sm-9">
+													<input type="text" class="form-control" maxlength="50" placeholder="No Referensi Pembayaran" value="<?php echo @$RowData['NoRefDibayar'];?>" name="NoRefDibayar" required>
+												  </div>
+												</div>-->
+												<div class="form-group row">
+												  <label class="col-sm-3 form-control-label">No SKRD</label>
+												  <div class="col-sm-9">
+													<input type="text" class="form-control"  value="<?php echo @$RowData['NoSKRD'];?>" placeholder="No SKRD"  name="NoSKRD">
+												  </div>
+												</div>
 												<div class="form-group row">
 												  <label class="col-sm-3 form-control-label">Keterangan</label>
 												  <div class="col-sm-9">
-													<input type="text" class="form-control" maxlength="150" placeholder="Keterangan" value="<?php echo @$RowData['Keterangan'];?>" name="txtKeterangan" >
+													<input type="text" class="form-control"  value="<?php echo @$RowData['KeteranganBayar'];?>" placeholder="Keterangan"  name="Keterangan">
+												  </div>
+												</div>
+												<div class="form-group row">
+												  <label class="col-sm-3 form-control-label"></label>
+												  <div class="col-sm-9">
+													<input type="checkbox" value="1" name="IsDibayar" <?php if(@$RowData['IsDibayar'] == '1') { echo 'checked'; }; ?> class="checkbox-template">
+													<label>Sudah Di Bayar</label>
 												  </div>
 												</div><hr/>
 												<input type="hidden" name="NoTransaksi" value="<?php echo $RowData['NoTransaksi']; ?>"> 
-												<input type="hidden" name="Person" value="<?php echo $RowData['IDPerson']; ?>"> 
 												<button type="submit" class="btn btn-success" name="SimpanTransaksi">Simpan</button>
-												<a href="TrTerimaTimbangan.php"><span class="btn btn-danger">Kembali</span></a>
+												<a href="TrTerimaPembayaran.php"><span class="btn btn-danger">Kembali</span></a>
 											</form>
 										</div>
-									  </form>
 									</div>
-									<?php } ?>
 								</div>
 							</div>
 						</div>
@@ -438,74 +365,7 @@ if(@$_GET['id']!=null){
         </div>
       </div>
     </div>
-	<!-- Modal Popup untuk Edit--> 
-	<div id="ModalEdit" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true"></div>
-	<!-- Modal -->
-        <div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
-            <div class="modal-dialog modal-lg" style="width:800px">
-                <div class="modal-content">
-                  <div class="modal-header">
-						<h4 class="modal-title" id="myModalLabel">Pencarian User Pemilik UTTP</h4>
-                        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                        
-                    </div>
-                    <div class="modal-body">
-					<div class="table-responsive">  
-                        <table id="example" class="table table-bordered table-hover table-striped">
-                            <thead>
-                                <tr>
-                                    <th>Nama</th>
-                                    <th>NIK</th>
-									<th>Alamat</th>
-									<th>Timbangan</th>
-                                </tr>
-                            </thead>
-                            <tbody><!-- -->
-                                <?php
-									$query = "SELECT * FROM mstperson WHERE JenisPerson LIKE ? AND IsVerified = b'1' ORDER BY NamaPerson ASC";
-
-									$jenisPerson = "%Timbangan%";
-
-									$stmt = mysqli_prepare($koneksi, $query);
-									mysqli_stmt_bind_param($stmt, "s", $jenisPerson);
-
-									mysqli_stmt_execute($stmt);
-
-									$result = mysqli_stmt_get_result($stmt);
-
-									while ($data = mysqli_fetch_array($result)) {
-									
-									
-
-								// source code lama
-                                // $query = mysqli_query($koneksi,"SELECT * FROM mstperson WHERE  JenisPerson LIKE '%Timbangan%' AND IsVerified=b'1'  ORDER BY NamaPerson ASC");
-                                // while ($data = mysqli_fetch_array($query)) {
-                                    ?>
-                                    <tr id="pilih" data-id="<?php echo $data['IDPerson']; ?>" data-nama="<?php echo $data['NamaPerson']; ?>">
-                                        <td><?php echo $data['NamaPerson']; ?></td>
-                                        <td><?php echo $data['NIK']; ?></td>
-										<td><?php echo $data['AlamatLengkapPerson']; ?></td>
-										<td>
-											<?php 
-												$tim = mysqli_query($koneksi,"SELECT IDTimbangan FROM timbanganperson WHERE  IDPerson='".$data['IDPerson']."' AND StatusUTTP='Aktif'  ORDER BY IDTimbangan ASC");
-												while ($t = mysqli_fetch_array($tim)) {
-													echo $t['IDTimbangan'].'<br>';
-												}
-											?>
-										</td>
-                                    </tr>
-                                    <?php
-                                }
-								mysqli_stmt_close($stmt);
-                                ?>
-                            </tbody>
-                        </table>  
-                    </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    <!-- JavaScript files-->
+	<!-- JavaScript files-->
     <script src="../komponen/vendor/jquery/jquery.min.js"></script>
     <script src="../komponen/vendor/popper.js/umd/popper.min.js"> </script>
     <script src="../komponen/vendor/bootstrap/js/bootstrap.min.js"></script>
@@ -519,398 +379,142 @@ if(@$_GET['id']!=null){
     <script src="../komponen/js/front.js"></script>	
 	<!-- DatePicker -->
 	<script type="text/javascript" src="../library/Datepicker/dist/zebra_datepicker.min.js"></script>
-	<script src="../library/select2master/js/select2.min.js"></script>
-	<script type="text/javascript" src="../library/datatables/datatables.min.js"></script>
-	
 	<script type="text/javascript">
-		//datepicker
 		$(document).ready(function() {
 			$('#time1').Zebra_DatePicker({format: 'Y-m-d'});
 		});
-		
-	
-		$(document).on('click', '#nama', function () {
-	      $('#myModal').modal('show');
-		  var table = $('#example').DataTable();
-		  var input = $('#example_filter input');
-			setTimeout(function(){
-				input.focus();
-			}, 500);
-	    });
-		
-			
-		 // jika dipilih, nim akan masuk ke input dan modal di tutup
-            $(document).on('click', '#pilih', function (e) {
-                document.getElementById("id").value = $(this).attr('data-id');
-                document.getElementById("nama").value = $(this).attr('data-nama');
-                $('#myModal').modal('hide');
-            });
-		
-		  // open modal lihat progress
-	   $(document).ready(function () {
-	   $(".open_modal_item").click(function(e) {
-		  var no_trans = $(this).data("notransaksi");
-		  var id_person = $(this).data("idperson");
-		  var user = $(this).data("user");
-		  var no_urut = $(this).data("nourut");
-		  var aksi = $(this).data("aksi");
-		  	   $.ajax({
-					   url: "Modal/AddTimbanganItem.php",
-					   type: "GET",
-					   data : {NoTransaksi: no_trans,IDPerson: id_person,login_id: user,NoUrutTrans: no_urut,Aksi: aksi},
-					   success: function (ajaxData){
-					   $("#ModalEdit").html(ajaxData);
-					   $("#ModalEdit").modal('show',{backdrop: 'true'});
-				   }
-				});
-			});
-		});
 	</script>
+	
 	<?php 
-		@$IDPerson		= htmlspecialchars($_POST['IDPerson']);
-		@$Person		= htmlspecialchars($_POST['Person']);
+		
 		@$NoTransaksi	= htmlspecialchars($_POST['NoTransaksi']);
-		@$UserName		= htmlspecialchars($_POST['UserName']);
-		@$IDTimbangan	= htmlspecialchars($_POST['IDTimbangan']);
+		// @$NoRefDibayar	= htmlspecialchars($_POST['NoRefDibayar']);
 		@$Keterangan	= htmlspecialchars($_POST['Keterangan']);
-		@$txtKeterangan	= htmlspecialchars($_POST['txtKeterangan']);
-		@$NoUrutTrans	= htmlspecialchars($_POST['NoUrutTrans']);
-		@$TotalRetribusi	= htmlspecialchars($_POST['TotalRetribusi']);
-		@$KodeLokasi	= htmlspecialchars($_POST['KodeLokasi']);
-		
-		if(isset($_POST['SimpanUser'])){
-			// cek apakah sudah ada permohonan
-			
-			$query = mysqli_prepare($koneksi, "SELECT * FROM tractiontimbangan WHERE IDPerson=? AND (StatusTransaksi='PENERIMAAN' OR StatusTransaksi='PROSES SIDANG' OR StatusTransaksi='PRAWAITING')");
-			mysqli_stmt_bind_param($query, "s", $IDPerson);
-			mysqli_stmt_execute($query);
-			mysqli_stmt_store_result($query);
-			$num = mysqli_stmt_num_rows($query);
-
-			// source code lama
-			// $cek = @mysqli_query($koneksi, "SELECT * from tractiontimbangan where IDPerson='$IDPerson' AND (StatusTransaksi='PENERIMAAN' OR StatusTransaksi='PROSES SIDANG' OR StatusTransaksi='PRAWAITING')");
-			// $num = @mysqli_num_rows($cek);
-			
-			if($num > 0){
-				echo '<script type="text/javascript">swal( "Transaksi Sudah Ada!", " Silahkan Tunggu Sampai Selesai Diproses ", "error" ); </script>';
-			}else{ 
-				// membuat id otomatis
-				$sql = @mysqli_query($koneksi, "SELECT RIGHT(NoTransaksi,8) AS kode FROM tractiontimbangan ORDER BY NoTransaksi DESC LIMIT 1"); 
-				$nums = mysqli_num_rows($sql);
-				if($nums <> 0){
-					 $data = mysqli_fetch_array($sql);
-					 $kode = $data['kode'] + 1;
-				}else{
-					 $kode = 1;
-				}
-        
-				//mulai bikin kode
-				$bikin_kode = str_pad($kode, 8, "0", STR_PAD_LEFT);
-				$kode_jadi = "TR-".$Tanggal."-".$bikin_kode;
-				
-				//simpan 
-				// Insert new record
-				$stmt = mysqli_prepare($koneksi, "INSERT INTO tractiontimbangan (NoTransaksi, IDPerson, JenisTransaksi, UserTerima, StatusTransaksi, TglTransaksi) VALUES (?, ?, 'TERA DI KANTOR', ?, 'PRAWAITING', DATE(NOW()))");
-				
-				mysqli_stmt_bind_param($stmt, "sss", $kode_jadi, $IDPerson, $login_id);
-				$SimpanData = mysqli_stmt_execute($stmt);
-
-				// source code lama
-				// $SimpanData = @mysqli_query($koneksi, "INSERT INTO tractiontimbangan (NoTransaksi,IDPerson,JenisTransaksi,UserTerima,StatusTransaksi,TglTransaksi)VALUES('$kode_jadi','$IDPerson','TERA DI KANTOR','$login_id','PRAWAITING', DATE(NOW()))"); 
-				
-				if ($SimpanData){
-						InsertLog($koneksi, 'Tambah Data', 'Menambah Transaksi Penerimaan Timbangan User', $login_id, $kode_jadi, 'Transaksi Penerimaan Timbangan User');
-						echo '<script language="javascript">document.location="TrTerimaTimbangan.php?id='.base64_encode($kode_jadi).'";</script>';
-					}else{
-						echo '<script type="text/javascript">
-					  sweetAlert({
-						title: "Simpan Data Gagal!",
-						text: " ",
-						type: "error"
-					  },
-					  function () {
-						window.location.href = "TrTerimaTimbangan.php";
-					  });
-					  </script>';
-					}
-				
-				
-			}
-		}
+		@$IsDibayar		= htmlspecialchars($_POST['IsDibayar']);
+		@$NoSKRD		= htmlspecialchars($_POST['NoSKRD']);
 	
-	//Simpan Data untuk Item Timbangan
-	if(isset($_POST['SimpanItem'])){
-		
-		$AmbilNoUrut = mysqli_prepare($koneksi, "SELECT MAX(NoUrutTrans) as NoSaatIni FROM trtimbanganitem WHERE NoTransaksi=?");
-		mysqli_stmt_bind_param($AmbilNoUrut, "s", $NoTransaksi);
-		mysqli_stmt_execute($AmbilNoUrut);
-		mysqli_stmt_store_result($AmbilNoUrut);
-		mysqli_stmt_bind_result($AmbilNoUrut, $NoSaatIni);
-		mysqli_stmt_fetch($AmbilNoUrut);
-		$Urutan = $NoSaatIni + 1;
-
-		// source code lama
-		// $AmbilNoUrut=mysqli_query($koneksi,"SELECT MAX(NoUrutTrans) as NoSaatIni FROM trtimbanganitem WHERE NoTransaksi='$NoTransaksi'");
-		// $Data=mysqli_fetch_assoc($AmbilNoUrut);
-		// $NoSekarang = $Data['NoSaatIni'];
-		// $Urutan = $NoSekarang+1;
-		
-		$sql = mysqli_prepare($koneksi, "SELECT a.RetribusiDikantor, b.UkuranRealTimbangan, a.NilaiBawah, a.RetPenambahanDikantor, a.NilaiTambah 
-										FROM detilukuran a 
-										JOIN timbanganperson b ON (a.KodeTimbangan, a.KodeKelas, a.KodeUkuran) = (b.KodeTimbangan, b.KodeKelas, b.KodeUkuran) 
-										WHERE b.IDTimbangan=?");
-		mysqli_stmt_bind_param($sql, "s", $IDTimbangan);
-		mysqli_stmt_execute($sql);
-		mysqli_stmt_store_result($sql);
-		mysqli_stmt_bind_result($sql, $RetribusiDikantor, $UkuranRealTimbangan, $NilaiBawah, $RetPenambahanDikantor, $NilaiTambah);
-		mysqli_stmt_fetch($sql);
-
-		// source code lama
-		// $sql 	= mysqli_query($koneksi, ("SELECT a.RetribusiDikantor,b.UkuranRealTimbangan,a.NilaiBawah,a.RetPenambahanDikantor,a.NilaiTambah FROM detilukuran a join timbanganperson b on (a.KodeTimbangan,a.KodeKelas,a.KodeUkuran) = (b.KodeTimbangan,b.KodeKelas,b.KodeUkuran) WHERE b.IDTimbangan='$IDTimbangan'"));
-		// $res    = mysqli_fetch_array($sql);
-		
-		if ($res['NilaiBawah'] == '0' AND $res['RetPenambahanDikantor'] == '0' ) {
-			$SimpanData = mysqli_prepare($koneksi, "INSERT INTO trtimbanganitem (NoTransaksi, NoUrutTrans, IDPerson, IDTimbangan, UserName, Keterangan, NominalRetribusi, KodeLokasi) 
-													VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-			mysqli_stmt_bind_param($SimpanData, "ssssssss", $NoTransaksi, $Urutan, $IDPerson, $IDTimbangan, $UserName, $Keterangan, $RetribusiDikantor, $KodeLokasi);
-			mysqli_stmt_execute($SimpanData);
-
-			// source code lama
-			// $SimpanData = @mysqli_query($koneksi, "INSERT INTO trtimbanganitem (NoTransaksi,NoUrutTrans,IDPerson,IDTimbangan,UserName,Keterangan,NominalRetribusi,KodeLokasi)VALUES('$NoTransaksi','$Urutan','$IDPerson','$IDTimbangan','$UserName','$Keterangan','".$res[0]."','$KodeLokasi')"); 
-		}else{
-			$Nilai = ($UkuranRealTimbangan - $NilaiTambah) / $NilaiBawah;
-			$Penambahan = ($Nilai * $RetPenambahanDikantor) + $RetribusiDikantor;
-
-			$SimpanData = mysqli_prepare($koneksi, "INSERT INTO trtimbanganitem (NoTransaksi, NoUrutTrans, IDPerson, IDTimbangan, UserName, Keterangan, NominalRetribusi, KodeLokasi) 
-													VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-			mysqli_stmt_bind_param($SimpanData, "ssssssss", $NoTransaksi, $Urutan, $IDPerson, $IDTimbangan, $UserName, $Keterangan, $Penambahan, $KodeLokasi);
-			$cek = mysqli_stmt_execute($SimpanData);
-
-			// source code lama
-			// $Nilai = ($res['UkuranRealTimbangan']-$res['NilaiTambah'])/$res['NilaiBawah'];
-			// $Penambahan =($Nilai*$res['RetPenambahanDikantor'])+$res['RetribusiDikantor'];
-			
-			// $SimpanData = @mysqli_query($koneksi, "INSERT INTO trtimbanganitem (NoTransaksi,NoUrutTrans,IDPerson,IDTimbangan,UserName,Keterangan,NominalRetribusi,KodeLokasi)VALUES('$NoTransaksi','$Urutan','$IDPerson','$IDTimbangan','$UserName','$Keterangan','".$Penambahan."','$KodeLokasi')"); 
-		}
-		
-		if($cek){
-			InsertLog($koneksi, 'Tambah Data', 'Menambah Data Item Timbangan ', $UserName, $NoTransaksi, 'Transaksi Penerimaan Timbangan User');
-			echo '<script language="javascript">document.location="TrTerimaTimbangan.php?id='.base64_encode($NoTransaksi).'";</script>';
-		}else{
-			echo '<script type="text/javascript">
-				  sweetAlert({
-					title: "Simpan Data Gagal!",
-					text: " ",
-					type: "error"
-				  },
-				  function () {
-					window.location.href = "TrTerimaTimbangan.php";
-				  });
-				  </script>';
-		}
-	}
-	
-	//Simpan Data untuk Edit Item Timbangan
-	if(isset($_POST['EditItem'])){
-		$query = mysqli_prepare($koneksi, "SELECT a.RetribusiDikantor, b.UkuranRealTimbangan, a.NilaiBawah, a.RetPenambahanDikantor, a.NilaiTambah 
-	                    FROM detilukuran a 
-                        JOIN timbanganperson b ON (a.KodeTimbangan, a.KodeKelas, a.KodeUkuran) = (b.KodeTimbangan, b.KodeKelas, b.KodeUkuran) 
-                        WHERE b.IDTimbangan=?");
-		mysqli_stmt_bind_param($query, "s", $IDTimbangan);
-		mysqli_stmt_execute($query);
-		$result = mysqli_stmt_get_result($query);
-		$res = mysqli_fetch_array($result);
-
-		// source code lama
-		// $sql 	= mysqli_query($koneksi, ("SELECT a.RetribusiDikantor,b.UkuranRealTimbangan,a.NilaiBawah,a.RetPenambahanDikantor,a.NilaiTambah FROM detilukuran a join timbanganperson b on (a.KodeTimbangan,a.KodeKelas,a.KodeUkuran) = (b.KodeTimbangan,b.KodeKelas,b.KodeUkuran) WHERE b.IDTimbangan='$IDTimbangan'"));
-		// $res    = mysqli_fetch_array($sql);
-		
-		if ($res['NilaiBawah'] == '0' AND $res['RetPenambahanDikantor'] == '0' ) {
-			$Edit = mysqli_prepare($koneksi, "UPDATE trtimbanganitem SET IDTimbangan=?, UserName=?, Keterangan=?, NominalRetribusi=?, KodeLokasi=? WHERE NoTransaksi=? AND NoUrutTrans=?");
-			mysqli_stmt_bind_param($Edit, "sssssss", $IDTimbangan, $UserName, $Keterangan, $res[0], $KodeLokasi, $NoTransaksi, $NoUrutTrans);
-			mysqli_stmt_execute($Edit);
-			// source code lama
-			// $Edit = mysqli_query($koneksi,"UPDATE trtimbanganitem SET IDTimbangan='$IDTimbangan',UserName='$UserName',Keterangan='$Keterangan',NominalRetribusi='".$res[0]."',KodeLokasi='$KodeLokasi' WHERE NoTransaksi='$NoTransaksi' and NoUrutTrans='$NoUrutTrans'");
-		}else{
-			$Nilai = ($res['UkuranRealTimbangan'] - $res['NilaiTambah']) / $res['NilaiBawah'];
-			$Penambahan = ($Nilai * $res['RetPenambahanDikantor']) + $res['RetribusiDikantor'];
-
-			$Edit = mysqli_prepare($koneksi, "UPDATE trtimbanganitem SET IDTimbangan=?, UserName=?, Keterangan=?, KodeLokasi=?, NominalRetribusi=? WHERE NoTransaksi=? AND NoUrutTrans=?");
-			mysqli_stmt_bind_param($Edit, "sssssss", $IDTimbangan, $UserName, $Keterangan, $KodeLokasi, $Penambahan, $NoTransaksi, $NoUrutTrans);
-			mysqli_stmt_execute($Edit);
-			// source code lama
-			// $Nilai = ($res['UkuranRealTimbangan']-$res['NilaiTambah'])/$res['NilaiBawah'];
-			// $Penambahan =($Nilai*$res['RetPenambahanDikantor'])+$res['RetribusiDikantor'];
-			
-			
-			// $Edit = mysqli_query($koneksi,"UPDATE trtimbanganitem SET IDTimbangan='$IDTimbangan',UserName='$UserName',Keterangan='$Keterangan',KodeLokasi='$KodeLokasi',NominalRetribusi='".$Penambahan."' WHERE NoTransaksi='$NoTransaksi' and NoUrutTrans='$NoUrutTrans'");
-		}
-		if($Edit){
-			InsertLog($koneksi, 'Edit Data', 'Mengubah Data Item Timbangan ', $UserName, $NoTransaksi, 'Transaksi Penerimaan Timbangan User');
-			echo '<script language="javascript">document.location="TrTerimaTimbangan.php?id='.base64_encode($NoTransaksi).'";</script>';
-		}else{
-			echo '<script type="text/javascript">
-				  sweetAlert({
-					title: "Simpan Data Gagal!",
-					text: " ",
-					type: "error"
-				  },
-				  function () {
-					window.location.href = "TrTerimaTimbangan.php";
-				  });
-				  </script>';
-		}
-	}
-		
-	//Hapus Data Item Timbangan
-	if(base64_decode(@$_GET['aksi'])=='Hapus'){
-		$id = base64_decode($_GET['id']);
-		$nm = base64_decode($_GET['nm']);
-
-		$query = mysqli_prepare($koneksi, "DELETE FROM trtimbanganitem WHERE NoTransaksi=? AND NoUrutTrans=?");
-		mysqli_stmt_bind_param($query, "ss", $id, $nm);
-		mysqli_stmt_execute($query);
-
-		// source code lama
-		// $query = mysqli_query($koneksi,"delete from trtimbanganitem WHERE NoTransaksi='".base64_decode($_GET['id'])."' and NoUrutTrans='".base64_decode($_GET['nm'])."'");
-		if($query){
-			InsertLog($koneksi, 'Hapus Data', 'Menghapus Data Item Timbangan', $login_id, base64_decode(@$_GET['id']), 'Transaksi Penerimaan Timbangan User');
-			echo '<script language="javascript">document.location="TrTerimaTimbangan.php?id='.$_GET['id'].'"; </script>';
-		}else{
-			echo '<script type="text/javascript">
-					  sweetAlert({
-						title: "Hapus Data Gagal!",
-						text: " Data Telah Digunakan Dalam Berbagai Transaksi ",
-						type: "error"
-					  },
-					  function () {
-						window.location.href = "TrTerimaTimbangan.php";
-					  });
-					  </script>';
-		}
-	}
-	
-	//Ganti User Pemohon
-	if(isset($_POST['GantiUser'])){
-		// cek apakah sudah ada permohonan
-		$idp = $IDPerson;
-		$cek =  mysqli_prepare($koneksi, "SELECT * from tractiontimbangan where IDPerson = ? AND (StatusTransaksi='PENERIMAAN' OR StatusTransaksi='PROSES SIDANG' OR StatusTransaksi='PRAWAITING')");
-		mysqli_stmt_bind_param($cek, "s", $idp);
-		mysqli_stmt_execute($cek);
-		$num = mysqli_stmt_num_rows($cek);
-
-		// source code lama
-		// $cek = @mysqli_query($koneksi, "SELECT * from tractiontimbangan where IDPerson='$IDPerson' AND (StatusTransaksi='PENERIMAAN' OR StatusTransaksi='PROSES SIDANG' OR StatusTransaksi='PRAWAITING')");
-		// $num = @mysqli_num_rows($cek);
-		
-		if($num > 0){
-			echo '<script type="text/javascript">swal( "Transaksi Sudah Ada!", " Silahkan Tunggu Sampai Selesai Diproses ", "error" ); </script>';
-		}else{
-			$notrans = $NoTransaksi;
-			$del = mysqli_prepare($koneksi, "DELETE FROM trtimbanganitem WHERE NoTransaksi = ?");
-			mysqli_stmt_bind_param($del, "s", $notrans);
-			mysqli_stmt_execute($del);
-			
-			$idPer = $IDPerson; 
-			$upd = mysqli_prepare($koneksi, "UPDATE tractiontimbangan SET IDPerson = ? WHERE NoTransaksi = ?");
-			mysqli_stmt_bind_param($upd, "ss", $idPer, $notrans);
-			$cek = mysqli_stmt_execute($upd);
-
-			// source code lama
-			// mysqli_query($koneksi,"DELETE FROM trtimbanganitem WHERE NoTransaksi='$NoTransaksi'");
-			// //update 
-			// $query = mysqli_query($koneksi,"UPDATE tractiontimbangan SET IDPerson='$IDPerson' WHERE NoTransaksi='$NoTransaksi'");
-			if ($cek){
-				InsertLog($koneksi, 'Edit Data', 'Mengubah User Pemohon Transaksi Penerimaan Timbangan User', $login_id, $NoTransaksi, 'Transaksi Penerimaan Timbangan User');
-				echo '<script language="javascript">document.location="TrTerimaTimbangan.php?id='.base64_encode($NoTransaksi).'";</script>';
-			}else{
-				echo '<script type="text/javascript">
-				  sweetAlert({
-					title: "Simpan Data Gagal!",
-					text: " ",
-					type: "error"
-				  },
-				  function () {
-					window.location.href = "TrTerimaTimbangan.php";
-				  });
-				  </script>';
-			}
-		}
-	}
-	
-	//Simpan Transaksi Penerimaan
+	//Simpan Transaksi Sidang Tera
 	if(isset($_POST['SimpanTransaksi'])){
-		// cek apakah sudah ada permohonan
-		$notrans = $NoTransaksi;
-		$cek = mysqli_prepare($koneksi, "SELECT * from trtimbanganitem where NoTransaksi = ?");
-		mysqli_stmt_bind_param($cek, "s", $notrans);
-		mysqli_stmt_execute($cek);
-		$num = mysqli_stmt_num_rows($cek);
+		// membuat id otomatis
+
+		$sql = mysqli_prepare($koneksi, "SELECT RIGHT(NoRefDibayar, 8) AS kode FROM tractiontimbangan ORDER BY NoRefDibayar DESC LIMIT 1");
+
+		mysqli_stmt_execute($sql);
+
+		$result = mysqli_stmt_get_result($sql);
+
+		$nums = mysqli_num_rows($result);
 		
-		// source code lama
-		// $cek = @mysqli_query($koneksi, "SELECT * from trtimbanganitem where NoTransaksi='$NoTransaksi'");
-		// $num = @mysqli_num_rows($cek);
-		// echo $num;
+		$query = mysqli_prepare($koneksi, "SELECT RIGHT(NoRefDibayar, 8) AS kode FROM tractiontimbangan ORDER BY NoRefDibayar DESC LIMIT 1");
+
+		// // Execute the prepared statement
+		// mysqli_stmt_execute($query);
+
+		// // Get the result set
+		// $result = mysqli_stmt_get_result($query);
 		
-		if($num <= 0){
-			echo '<script type="text/javascript">swal( "Item Timbangan Belum Ada!", " Silahkan inputkan item timbangan user ", "error" ); </script>';
-		}else{ 
-			//update 
-			$txtKet = $txtKeterangan;
-			$idPer = $IDPerson;
-			$query = mysqli_prepare($koneksi,"UPDATE tractiontimbangan SET StatusTransaksi='PENERIMAAN', Keterangan = ? WHERE NoTransaksi = ? and IDPerson = ?");
-			mysqli_stmt_bind_param($query, "sss", $txtKet, $notrans, $idPer);
-			$cek = mysqli_stmt_execute($query);
-			
-			// source code lama
-			// $query = mysqli_query($koneksi,"UPDATE tractiontimbangan SET StatusTransaksi='PENERIMAAN', Keterangan='$txtKeterangan' WHERE NoTransaksi='$NoTransaksi' and IDPerson='$Person'");
-			if ($cek){
-				InsertLog($koneksi, 'Edit Data', 'Transaksi Penerimaan Timbangan User', $login_id, $NoTransaksi, 'Transaksi Penerimaan Timbangan User');
-				echo '<script type="text/javascript">
-				  sweetAlert({
-					title: "Simpan Data Disimpan!",
-					text: " ",
-					type: "success"
-				  },
-				  function () {
-					window.location.href = "TrTerimaTimbangan.php";
-				  });
-				  </script>';
-			
-			}else{
-				echo '<script type="text/javascript">
-				  sweetAlert({
-					title: "Simpan Data Gagal!",
-					text: " ",
-					type: "error"
-				  },
-				  function () {
-					window.location.href = "TrTerimaTimbangan.php";
-				  });
-				  </script>';
-			}
+		// // Get the number of rows returned
+		// $nums = mysqli_stmt_num_rows($query);
+
+		// $sql = @mysqli_query($koneksi, "SELECT RIGHT(NoRefDibayar,8) AS kode FROM tractiontimbangan ORDER BY NoRefDibayar DESC LIMIT 1"); 
+		// $nums = mysqli_num_rows($sql);
+		
+		if($nums <> 0){
+			 $data = mysqli_fetch_array($result);
+			 $kode = $data['kode'] + 1;
+		}else{
+			 $kode = 1;
 		}
+
+		$bikin_kode = str_pad($kode, 8, "0", STR_PAD_LEFT);
+		$kode_jadi = "BYR-".$Tanggal."-".$bikin_kode;
+		
+		$query = mysqli_prepare($koneksi, "UPDATE tractiontimbangan SET TglDibayar=?, NoRefDibayar=?, KeteranganBayar=?, IsDibayar=?, UserBayar=?, NoSKRD=? WHERE NoTransaksi=?");
+
+		mysqli_stmt_bind_param($query, 'sssssss', $TanggalTransaksi, $kode_jadi, $Keterangan, $IsDibayar, $login_id, $NoSKRD, $NoTransaksi);
+
+		mysqli_stmt_execute($query);
+
+		// source code lama
+		//update 
+		// $query = mysqli_query($koneksi,"UPDATE tractiontimbangan SET TglDibayar='$TanggalTransaksi', NoRefDibayar='$kode_jadi', KeteranganBayar='$Keterangan', IsDibayar='$IsDibayar', UserBayar='$login_id',NoSKRD='$NoSKRD' WHERE NoTransaksi='$NoTransaksi'");
+		if (mysqli_stmt_affected_rows($query) > 0){
+			InsertLog($koneksi, 'Tambah Data', 'Transaksi Terima Pembayaran ', $login_id, $NoTransaksi, 'Transaksi Terima Pembayaran');
+			echo '<script language="javascript">document.location="TrTerimaPembayaran.php";</script>';
+		}else{
+			echo '<script type="text/javascript">
+			  sweetAlert({
+				title: "Simpan Data Gagal!",
+				text: " ",
+				type: "error"
+			  },
+			  function () {
+				window.location.href = "TrTerimaPembayaran.php";
+			  });
+			  </script>';
+		}
+		mysqli_stmt_close($query);
 	}
 	
 	//Hapus Transaksi Penerimaan
 	if(base64_decode(@$_GET['aksi'])=='HapusTransaksi'){
+		$decoded_id = base64_decode(@$_GET['tr']);
 
-		$decodedNoTransaksi = htmlspecialchars(base64_decode($_GET['tr']));
+		$query = mysqli_prepare($koneksi, "UPDATE tractiontimbangan SET TglTera=NULL, NoRefTera=NULL, KeteranganTera=NULL, IsDibayar=NULL, StatusTransaksi='PENERIMAAN' WHERE NoTransaksi=?");
 
-		$delTrtimbanganitem = mysqli_prepare($koneksi, "DELETE FROM trtimbanganitem WHERE NoTransaksi = ?");
-		mysqli_stmt_bind_param($delTrtimbanganitem, "s", $decodedNoTransaksi);
-		mysqli_stmt_execute($delTrtimbanganitem);
+		mysqli_stmt_bind_param($query, 's', $decoded_id);
 
-		$delTractiontimbangan = mysqli_prepare($koneksi, "DELETE FROM tractiontimbangan WHERE NoTransaksi = ?");
-		mysqli_stmt_bind_param($delTractiontimbangan, "s", $decodedNoTransaksi);
-		mysqli_stmt_execute($delTractiontimbangan);
+		mysqli_stmt_execute($query);
+
+		mysqli_stmt_close($query);
+		// source code lama
+		// mysqli_query($koneksi,"UPDATE tractiontimbangan SET TglTera=NULL, NoRefTera=NULL, KeteranganTera=NULL, IsDibayar=NULL, StatusTransaksi='PENERIMAAN' WHERE NoTransaksi='".htmlspecialchars(base64_decode(@$_GET['tr']))."'");
+		
+		$HapusGambar = mysqli_prepare($koneksi, "SELECT FotoAction1, FotoAction2, FotoAction3 FROM trtimbanganitem WHERE NoTransaksi=?");
+
+		$decoded_id = base64_decode($_GET['tr']);
+
+		mysqli_stmt_bind_param($HapusGambar, 's', $decoded_id);
+
+		mysqli_stmt_execute($HapusGambar);
+
+		mysqli_stmt_bind_result($HapusGambar, $fotoAction1, $fotoAction2, $fotoAction3);
+
+		mysqli_stmt_fetch($HapusGambar);
+
+		$data = array(
+			"FotoAction1" => $fotoAction1,
+			"FotoAction2" => $fotoAction2,
+			"FotoAction3" => $fotoAction3
+		);
+
+		mysqli_stmt_close($HapusGambar);
 
 		// source code lama
-		// mysqli_query($koneksi,"DELETE FROM trtimbanganitem WHERE NoTransaksi='".htmlspecialchars(base64_decode($_GET['tr']))."'");
-		// $query = mysqli_query($koneksi,"delete from tractiontimbangan WHERE NoTransaksi='".htmlspecialchars(base64_decode($_GET['tr']))."' ");
-		if(mysqli_stmt_affected_rows($delTractiontimbangan) > 0){
-			InsertLog($koneksi, 'Hapus Data', 'Menghapus Data Transaksi Penerimaan Timbangan', $login_id, base64_decode(@$_GET['tr']), 'Transaksi Penerimaan Timbangan User');
-			echo '<script language="javascript">document.location="TrTerimaTimbangan.php"; </script>';
+		// $HapusGambar = mysqli_query($koneksi,"SELECT FotoAction1,FotoAction2,FotoAction3 FROM trtimbanganitem WHERE NoTransaksi='".htmlspecialchars(base64_decode($_GET['tr']))."'");
+		// $data = mysqli_fetch_array($HapusGambar);	
+		
+		unlink("../images/TeraTimbangan/".$data['FotoAction1']."");
+		unlink("../images/TeraTimbangan/thumb_".$data['FotoAction1']."");
+		unlink("../images/TeraTimbangan/".$data['FotoAction2']."");
+		unlink("../images/TeraTimbangan/thumb_".$data['FotoAction2']."");
+		unlink("../images/TeraTimbangan/".$data['FotoAction3']."");
+		unlink("../images/TeraTimbangan/thumb_".$data['FotoAction3']."");
+		
+		$decoded_id = base64_decode(@$_GET['tr']);
+
+		$edit = mysqli_prepare($koneksi, "UPDATE trtimbanganitem SET FotoAction1=NULL, FotoAction2=NULL, FotoAction3=NULL, HasilAction1=NULL, HasilAction2=NULL, HasilAction3=NULL WHERE NoTransaksi=?");
+
+		mysqli_stmt_bind_param($edit, 's', $decoded_id);
+
+		mysqli_stmt_execute($edit);
+
+		// source code lama
+		//update 
+		// $edit = mysqli_query($koneksi,"UPDATE trtimbanganitem SET  FotoAction1=NULL, FotoAction2=NULL, FotoAction3=NULL, HasilAction1=NULL, HasilAction2=NULL, HasilAction3=NULL WHERE NoTransaksi='".htmlspecialchars(base64_decode(@$_GET['tr']))."'");
+		if($edit){
+			InsertLog($koneksi, 'Hapus Data', 'Menghapus Data Transaksi Penerimaan Timbangan', $login_id, base64_decode(@$_GET['tr']), 'Transaksi Proses Sidang Tera');
+			echo '<script language="javascript">document.location="TrSidangTera.php"; </script>';
 		}else{
 			echo '<script type="text/javascript">
 					  sweetAlert({
@@ -919,9 +523,97 @@ if(@$_GET['id']!=null){
 						type: "error"
 					  },
 					  function () {
-						window.location.href = "TrTerimaTimbangan.php";
+						window.location.href = "TrSidangTera.php";
 					  });
 					  </script>';
+		}
+		mysqli_stmt_close($edit);
+	}
+	
+	if(base64_decode(@$_GET['aksi'])=='Hapus'){
+		$decoded_id = base64_decode($_GET['id']);
+		$decoded_nm = base64_decode($_GET['nm']);
+
+		$HapusGambar = mysqli_prepare($koneksi, "SELECT FotoAction1, FotoAction2, FotoAction3 FROM trtimbanganitem WHERE NoTransaksi=? AND NoUrutTrans=?");
+
+		mysqli_stmt_bind_param($HapusGambar, 'ss', $decoded_id, $decoded_nm);
+
+		mysqli_stmt_execute($HapusGambar);
+
+		mysqli_stmt_bind_result($HapusGambar, $fotoAction1, $fotoAction2, $fotoAction3);
+
+		mysqli_stmt_fetch($HapusGambar);
+
+		$data = array(
+			"FotoAction1" => $fotoAction1,
+			"FotoAction2" => $fotoAction2,
+			"FotoAction3" => $fotoAction3
+		);
+
+		mysqli_stmt_close($HapusGambar);
+
+		// source code lama
+		// $HapusGambar = mysqli_query($koneksi,"SELECT FotoAction1,FotoAction2,FotoAction3 FROM trtimbanganitem WHERE NoTransaksi='".htmlspecialchars(base64_decode($_GET['id']))."' and NoUrutTrans='".htmlspecialchars(base64_decode($_GET['nm']))."'");
+		// $data=mysqli_fetch_array($HapusGambar);
+
+		$decoded_id = base64_decode($_GET['id']);
+		$decoded_nm = base64_decode($_GET['nm']);
+		
+		$query = mysqli_prepare($koneksi, "UPDATE trtimbanganitem SET FotoAction1=NULL, FotoAction2=NULL, FotoAction3=NULL, HasilAction1=NULL, HasilAction2=NULL, HasilAction3=NULL WHERE NoTransaksi=? AND NoUrutTrans=?");
+
+		mysqli_stmt_bind_param($query, 'ss', $decoded_id, $decoded_nm);
+
+		mysqli_stmt_execute($query);
+
+		// source code lama
+		// $query = mysqli_query($koneksi,"update trtimbanganitem set FotoAction1=NULL, FotoAction2=NULL, FotoAction3=NULL, HasilAction1=NULL, HasilAction2=NULL, HasilAction3=NULL  WHERE  NoTransaksi='".htmlspecialchars(base64_decode($_GET['id']))."' and NoUrutTrans='".htmlspecialchars(base64_decode($_GET['nm']))."'");
+		if(mysqli_stmt_affected_rows($query) > 0){
+			//hapus gambar terlebih dahulu
+		
+			unlink("../images/TeraTimbangan/".$data['FotoAction1']."");
+			unlink("../images/TeraTimbangan/thumb_".$data['FotoAction1']."");
+			unlink("../images/TeraTimbangan/".$data['FotoAction2']."");
+			unlink("../images/TeraTimbangan/thumb_".$data['FotoAction2']."");
+			unlink("../images/TeraTimbangan/".$data['FotoAction3']."");
+			unlink("../images/TeraTimbangan/thumb_".$data['FotoAction3']."");
+			
+			InsertLog($koneksi, 'Hapus Data', 'Menghapus Hasil Sidang Tera Timbangan ', $login_id, base64_decode(@$_GET['id']), 'Transaksi Proses Sidang Tera');
+				
+			echo '<script language="javascript">document.location="TrSidangTera.php?NoTransaksi='.base64_decode($_GET['id']).'"; </script>';
+		}else{
+			echo '<script type="text/javascript">
+					  sweetAlert({
+						title: "Hapus Data Gagal!",
+						text: " Data Telah Digunakan Dalam Berbagai Transaksi ",
+						type: "error"
+					  },
+					  function () {
+						window.location.href = "TrSidangTera.php?user='.base64_decode($_GET['id']).'";
+					  });
+					  </script>';
+		}
+		mysqli_stmt_close($query);
+	}
+	
+	// masih bingung
+	//Simpan Edit Item Timbangan
+	if(isset($_POST['SimpanEdit'])){
+		//update 
+		$query = mysqli_query($koneksi,"UPDATE trtimbanganitem SET HasilAction1='$HasilAction1', HasilAction2='$HasilAction2', HasilAction3='$HasilAction3' WHERE NoTransaksi='$NoTransaksi' and NoUrutTrans='$NoUrutTrans'");
+		if ($query){
+			InsertLog($koneksi, 'Edit Data', 'Mengubah Transaksi Hasil Sidang Tera ', $login_id, $NoTransaksi, 'Transaksi Proses Sidang Tera');
+			echo '<script language="javascript">document.location="TrSidangTera.php?NoTransaksi='.$NoTransaksi.'";</script>';
+		}else{
+			echo '<script type="text/javascript">
+			  sweetAlert({
+				title: "Simpan Data Gagal!",
+				text: " ",
+				type: "error"
+			  },
+			  function () {
+				window.location.href = "TrSidangTera.php";
+			  });
+			  </script>';
 		}
 	}
 	
