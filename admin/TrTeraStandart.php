@@ -130,13 +130,30 @@ $TanggalNOW = date("Y-m-d");
                   <select name="IDTimbangan" id="IDTimbangan" class="form-control" required>	
 					<?php
 						echo "<option value=''>--- Pilih Timbangan ---</option>";
-						$menu = mysqli_query($koneksi,"SELECT IDTimbangan,NamaTimbangan 
-							from timbanganperson 
-							where IDPerson='PRS-2019-0000000' and StatusUTTP='Aktif' 
-							order by NamaTimbangan ASC");
-						while($kode = mysqli_fetch_array($menu)){
-							echo '<option value="'.$kode['IDTimbangan'].'" data-nama="'.$kode['NamaTimbangan'].'">'.$kode['NamaTimbangan'].'</option>';
+						$idPerson = 'PRS-2019-0000000'; 
+						
+						$query = mysqli_prepare($koneksi, "SELECT IDTimbangan, NamaTimbangan FROM timbanganperson WHERE IDPerson=? AND StatusUTTP='Aktif' ORDER BY NamaTimbangan ASC");
+
+						mysqli_stmt_bind_param($query, 's', $idPerson);
+
+						mysqli_stmt_execute($query);
+
+						mysqli_stmt_bind_result($query, $IDTimbangan, $NamaTimbangan);
+
+						while (mysqli_stmt_fetch($query)) {
+							echo '<option value="' . $IDTimbangan . '" data-nama="' . $NamaTimbangan . '">' . $NamaTimbangan . '</option>';
 						}
+
+						mysqli_stmt_close($query);
+
+						// source code lama
+						// $menu = mysqli_query($koneksi,"SELECT IDTimbangan,NamaTimbangan 
+						// 	from timbanganperson 
+						// 	where IDPerson='PRS-2019-0000000' and StatusUTTP='Aktif' 
+						// 	order by NamaTimbangan ASC");
+						// while($kode = mysqli_fetch_array($menu)){
+						// 	echo '<option value="'.$kode['IDTimbangan'].'" data-nama="'.$kode['NamaTimbangan'].'">'.$kode['NamaTimbangan'].'</option>';
+						// }
 					?>
 				  </select>
                 </div>
@@ -269,21 +286,47 @@ $TanggalNOW = date("Y-m-d");
 		
 		if(isset($_POST['SimpanTrans'])){
 			// cek apakah sudah ada permohonan
-			$cek = @mysqli_query($koneksi, "SELECT * from tractiontimbangan where IDPerson='$IDPerson' AND (StatusTransaksi='PRSOSS SIDANG'  OR StatusTransaksi ='PRAWAITING')");
-			$num = @mysqli_num_rows($cek);
+			
+			$cek = mysqli_prepare($koneksi, "SELECT * FROM tractiontimbangan WHERE IDPerson=? AND (StatusTransaksi='PRSOSS SIDANG' OR StatusTransaksi='PRAWAITING')");
+
+			mysqli_stmt_bind_param($cek, 's', $IDPerson);
+
+			mysqli_stmt_execute($cek);
+
+			$result = mysqli_stmt_get_result($cek);
+
+			$num = mysqli_num_rows($result);
+
+			mysqli_stmt_close($query);
+
+			// $cek = @mysqli_query($koneksi, "SELECT * from tractiontimbangan where IDPerson='$IDPerson' AND (StatusTransaksi='PRSOSS SIDANG'  OR StatusTransaksi ='PRAWAITING')");
+			// $num = @mysqli_num_rows($cek);
 			
 			if($num > 0){
 				echo '<script type="text/javascript">swal( "Transaksi Sudah Ada!", " Silahkan Mengubah Transaksi Yang Sudah Ada ", "error" ); </script>';
 			}else{ 
 				// membuat id otomatis
-				$sql = @mysqli_query($koneksi, "SELECT RIGHT(NoTransaksi,8) AS kode FROM tractiontimbangan ORDER BY NoTransaksi DESC LIMIT 1"); 
-				$nums = mysqli_num_rows($sql);
+
+				$query = mysqli_prepare($koneksi, "SELECT RIGHT(NoTransaksi,8) AS kode FROM tractiontimbangan ORDER BY NoTransaksi DESC LIMIT 1");
+
+				mysqli_stmt_execute($query);
+
+				mysqli_stmt_bind_result($query, $kode);
+
+				mysqli_stmt_fetch($query);
+
+				$nums = mysqli_stmt_num_rows($query);
+				
+				// source code lama
+				// $sql = @mysqli_query($koneksi, "SELECT RIGHT(NoTransaksi,8) AS kode FROM tractiontimbangan ORDER BY NoTransaksi DESC LIMIT 1"); 
+				// $nums = mysqli_num_rows($sql);
+	
 				if($nums <> 0){
-					 $data = mysqli_fetch_array($sql);
-					 $kode = $data['kode'] + 1;
+					$kode = $data['kode'] + 1;
 				}else{
-					 $kode = 1;
+					$kode = 1;
 				}
+				mysqli_stmt_close($query);
 				//mulai bikin kode
 				 $bikin_kode = str_pad($kode, 8, "0", STR_PAD_LEFT);
 				 $kode_jadi = "TR-".$Tanggal."-".$bikin_kode;
@@ -315,17 +358,55 @@ $TanggalNOW = date("Y-m-d");
 	
 	//Simpan Edit Item Timbangan
 	if(isset($_POST['SimpanEdit'])){
-				
-		$sql 	= mysqli_query($koneksi, ("SELECT a.RetribusiDiLokasi,b.UkuranRealTimbangan,a.NilaiBawah,a.RetPenambahanDilokasi,a.NilaiTambah FROM detilukuran a join timbanganperson b on (a.KodeTimbangan,a.KodeKelas,a.KodeUkuran) = (b.KodeTimbangan,b.KodeKelas,b.KodeUkuran) WHERE b.IDTimbangan='$IDTimbangan'"));
-		$res    = mysqli_fetch_array($sql);
+		$query = mysqli_prepare($koneksi, "SELECT a.RetribusiDiLokasi, b.UkuranRealTimbangan, a.NilaiBawah, a.RetPenambahanDilokasi, a.NilaiTambah FROM detilukuran a JOIN timbanganperson b ON (a.KodeTimbangan = b.KodeTimbangan AND a.KodeKelas = b.KodeKelas AND a.KodeUkuran = b.KodeUkuran) WHERE b.IDTimbangan = ?");
+
+		mysqli_stmt_bind_param($query, "s", $IDTimbangan);
+
+		mysqli_stmt_execute($query);
+
+		mysqli_stmt_bind_result($query, $RetribusiDiLokasi, $UkuranRealTimbangan, $NilaiBawah, $RetPenambahanDilokasi, $NilaiTambah);
+
+		mysqli_stmt_fetch($query);
+
+		$res = array(
+			"RetribusiDiLokasi" => $RetribusiDiLokasi, 
+			"UkuranRealTimbangan" => $UkuranRealTimbangan, 
+			"RetPenambahanDilokasi" => $RetPenambahanDilokasi, 
+			"NilaiBawah" => $NilaiBawah, 
+			"NilaiTambah" => $NilaiTambah
+		);
+
+		mysqli_stmt_close($query);
+
+		// source code lama 
+		// $sql 	= mysqli_query($koneksi, ("SELECT a.RetribusiDiLokasi,b.UkuranRealTimbangan,a.NilaiBawah,a.RetPenambahanDilokasi,a.NilaiTambah FROM detilukuran a join timbanganperson b on (a.KodeTimbangan,a.KodeKelas,a.KodeUkuran) = (b.KodeTimbangan,b.KodeKelas,b.KodeUkuran) WHERE b.IDTimbangan='$IDTimbangan'"));
+		// $res    = mysqli_fetch_array($sql);
 		
 		if ($res['NilaiBawah'] == '0' AND $res['RetPenambahanDilokasi'] == '0' ) {
-			$query = mysqli_query($koneksi,"UPDATE trtimbanganitem SET IDTimbangan='$IDTimbangan',HasilAction1='$HasilAction1', HasilAction2='$HasilAction2', HasilAction3='$HasilAction3',NominalRetribusi='".$res[0]."' WHERE NoTransaksi='$NoTransaksi' and NoUrutTrans='$NoUrutTrans'");
+			$query = mysqli_prepare($koneksi, "UPDATE trtimbanganitem SET IDTimbangan=?, HasilAction1=?, HasilAction2=?, HasilAction3=?, NominalRetribusi=? WHERE NoTransaksi=? AND NoUrutTrans=?");
+
+			mysqli_stmt_bind_param($query, "ssssdss", $IDTimbangan, $HasilAction1, $HasilAction2, $HasilAction3, $res["RetribusiDiLokasi"], $NoTransaksi, $NoUrutTrans);
+
+			mysqli_stmt_execute($query);
+
+			mysqli_stmt_close($query);
+
+			// SC lama
+			// $query = mysqli_query($koneksi,"UPDATE trtimbanganitem SET IDTimbangan='$IDTimbangan',HasilAction1='$HasilAction1', HasilAction2='$HasilAction2', HasilAction3='$HasilAction3',NominalRetribusi='".$res[0]."' WHERE NoTransaksi='$NoTransaksi' and NoUrutTrans='$NoUrutTrans'");
 		}else{
 			$Nilai = ($res['UkuranRealTimbangan']-$res['NilaiTambah'])/$res['NilaiBawah'];
 			$Penambahan =($Nilai*$res['RetPenambahanDilokasi'])+$res['RetribusiDiLokasi'];
 			
-			$query = mysqli_query($koneksi,"UPDATE trtimbanganitem SET IDTimbangan='$IDTimbangan',HasilAction1='$HasilAction1', HasilAction2='$HasilAction2', HasilAction3='$HasilAction3',NominalRetribusi='".$Penambahan."' WHERE NoTransaksi='$NoTransaksi' and NoUrutTrans='$NoUrutTrans'");
+			$query = mysqli_prepare($koneksi, "UPDATE trtimbanganitem SET IDTimbangan=?, HasilAction1=?, HasilAction2=?, HasilAction3=?, NominalRetribusi=? WHERE NoTransaksi=? AND NoUrutTrans=?");
+
+			mysqli_stmt_bind_param($query, "ssssdds", $IDTimbangan, $HasilAction1, $HasilAction2, $HasilAction3, $Penambahan, $NoTransaksi, $NoUrutTrans);
+
+			mysqli_stmt_execute($query);
+
+			mysqli_stmt_close($query);
+
+			// SC lama
+			// $query = mysqli_query($koneksi,"UPDATE trtimbanganitem SET IDTimbangan='$IDTimbangan',HasilAction1='$HasilAction1', HasilAction2='$HasilAction2', HasilAction3='$HasilAction3',NominalRetribusi='".$Penambahan."' WHERE NoTransaksi='$NoTransaksi' and NoUrutTrans='$NoUrutTrans'");
 		}
 				
 		if ($query){
@@ -349,43 +430,118 @@ $TanggalNOW = date("Y-m-d");
 		
 	//Hapus Data Item Timbangan
 	if(base64_decode(@$_GET['aksi'])=='Hapus'){
-		$HapusGambar = mysqli_query($koneksi,"SELECT FotoAction1,FotoAction2,FotoAction3,IDTimbangan FROM trtimbanganitem WHERE NoTransaksi='".htmlspecialchars(base64_decode($_GET['id']))."' and NoUrutTrans='".htmlspecialchars(base64_decode($_GET['nm']))."'");
-		$data=mysqli_fetch_array($HapusGambar);
+		$id = htmlspecialchars(base64_decode($_GET['id']));
+		$nm = htmlspecialchars(base64_decode($_GET['nm']));
+
+		$query = mysqli_prepare($koneksi, "SELECT FotoAction1, FotoAction2, FotoAction3, IDTimbangan FROM trtimbanganitem WHERE NoTransaksi=? AND NoUrutTrans=?");
+
+		mysqli_stmt_bind_param($query, "ss", $id, $nm);
+
+		mysqli_stmt_execute($query);
+
+		mysqli_stmt_bind_result($query, $FotoAction1, $FotoAction2, $FotoAction3, $IDTimbangan);
+
+		mysqli_stmt_fetch($query);
+
+		$data = array(
+			"FotoAction1" => $FotoAction1, 
+			"FotoAction2" => $FotoAction2, 
+			"FotoAction3" => $FotoAction3, 
+			"IDTimbangan" => $IDTimbangan
+		);
+
+		mysqli_stmt_close($query);
+
+		// SC lama
+		// $HapusGambar = mysqli_query($koneksi,"SELECT FotoAction1,FotoAction2,FotoAction3,IDTimbangan FROM trtimbanganitem WHERE NoTransaksi='".htmlspecialchars(base64_decode($_GET['id']))."' and NoUrutTrans='".htmlspecialchars(base64_decode($_GET['nm']))."'");
+		// $data=mysqli_fetch_array($HapusGambar);
 		
-		mysqli_query($koneksi,"update timbanganperson set StatusUTTP='Aktif' where IDTimbangan='".$data['IDTimbangan']."'");
-		$query = mysqli_query($koneksi,"delete from trtimbanganitem WHERE NoTransaksi='".htmlspecialchars(base64_decode($_GET['id']))."' and NoUrutTrans='".htmlspecialchars(base64_decode($_GET['nm']))."'");
-		if($query){
+		$query = mysqli_prepare($koneksi, "UPDATE timbanganperson SET StatusUTTP='Aktif' WHERE IDTimbangan=?");
+
+		mysqli_stmt_bind_param($query, "s", $data['IDTimbangan']);
+
+		mysqli_stmt_execute($query);
+
+		mysqli_stmt_close($query);
+
+		// SC lama
+		// mysqli_query($koneksi,"update timbanganperson set StatusUTTP='Aktif' where IDTimbangan='".$data['IDTimbangan']."'");
+		
+		$id = htmlspecialchars(base64_decode($_GET['id']));
+		$nm = htmlspecialchars(base64_decode($_GET['nm']));
+		$rp = htmlspecialchars(base64_decode($_GET['rp']));
+
+		$queryDelete = mysqli_prepare($koneksi, "DELETE FROM trtimbanganitem WHERE NoTransaksi=? AND NoUrutTrans=?");
+
+		mysqli_stmt_bind_param($queryDelete, "ss", $id, $nm);
+
+		mysqli_stmt_execute($queryDelete);
+
+		// $query = mysqli_query($koneksi,"delete from trtimbanganitem WHERE NoTransaksi='".htmlspecialchars(base64_decode($_GET['id']))."' and NoUrutTrans='".htmlspecialchars(base64_decode($_GET['nm']))."'");
+		if(mysqli_stmt_affected_rows($queryDelete) > 0){
+			$queryUpdate = mysqli_prepare($koneksi, "UPDATE tractiontimbangan SET TotalRetribusi=? WHERE NoTransaksi=?");
+	
+			mysqli_stmt_bind_param($queryUpdate, "ds", $rp, $id);
+	
+			mysqli_stmt_execute($queryUpdate);
 			
-			mysqli_query($koneksi,"update tractiontimbangan set TotalRetribusi='".htmlspecialchars(base64_decode($_GET['rp']))."' where NoTransaksi='".htmlspecialchars(base64_decode($_GET['id']))."'");
+			// mysqli_query($koneksi,"update tractiontimbangan set TotalRetribusi='".htmlspecialchars(base64_decode($_GET['rp']))."' where NoTransaksi='".htmlspecialchars(base64_decode($_GET['id']))."'");
 			InsertLog($koneksi, 'Hapus Data', 'Menghapus Data Item Timbangan', $login_id, base64_decode(@$_GET['id']), 'Transaksi Tera Di Lokasi');
+			mysqli_stmt_close($queryUpdate);
 			echo '<script language="javascript">document.location="TrTeraDilokasi.php?id='.$_GET['id'].'"; </script>';
 		}else{
+			mysqli_stmt_close($queryDelete);
 			echo '<script type="text/javascript">
-					  sweetAlert({
-						title: "Hapus Data Gagal!",
-						text: " Data Telah Digunakan Dalam Berbagai Transaksi ",
-						type: "error"
-					  },
-					  function () {
-						window.location.href = "TrTeraDilokasi.php";
-					  });
-					  </script>';
+			sweetAlert({
+				title: "Hapus Data Gagal!",
+				text: " Data Telah Digunakan Dalam Berbagai Transaksi ",
+				type: "error"
+			},
+			function () {
+				window.location.href = "TrTeraDilokasi.php";
+			});
+			</script>';
 		}
+		mysqli_stmt_close($queryDelete);
 	}
 	
 	//Ganti User Pemohon
 	if(isset($_POST['GantiTrans'])){ 
 		// cek apakah sudah ada permohonan
-		$cek = @mysqli_query($koneksi, "SELECT * from tractiontimbangan where IDPerson='$IDPerson' AND KodeLokasi='$KodeLokasi' AND ( StatusTransaksi='PROSES SIDANG' OR StatusTransaksi='PRAWAITING')");
-		$num = @mysqli_num_rows($cek);
+
+		// Prepare the SQL statement
+		$query = mysqli_prepare($koneksi, "SELECT * FROM tractiontimbangan WHERE IDPerson=? AND KodeLokasi=? AND (StatusTransaksi='PROSES SIDANG' OR StatusTransaksi='PRAWAITING')");
+
+		mysqli_stmt_bind_param($query, "ss", $IDPerson, $KodeLokasi);
+
+		mysqli_stmt_execute($query);
+
+		mysqli_stmt_store_result($query);
+
+		$num = mysqli_stmt_num_rows($query);
+
+		mysqli_stmt_close($query);
+
+		// SC lama
+		// $cek = @mysqli_query($koneksi, "SELECT * from tractiontimbangan where IDPerson='$IDPerson' AND KodeLokasi='$KodeLokasi' AND ( StatusTransaksi='PROSES SIDANG' OR StatusTransaksi='PRAWAITING')");
+		// $num = @mysqli_num_rows($cek);
 		
 		if($num > 0){
 			echo '<script type="text/javascript">swal( "Transaksi Sudah Ada!", "Silahkan Mengubah Transaksi Yang Sudah Ada ", "error" ); </script>';
 		}else{ 
-			mysqli_query($koneksi,"DELETE FROM trtimbanganitem WHERE NoTransaksi='$NoTransaksi'");
+			$queryDelete = mysqli_prepare($koneksi, "DELETE FROM trtimbanganitem WHERE NoTransaksi=?");
+			mysqli_stmt_bind_param($queryDelete, "s", $NoTransaksi);
+			mysqli_stmt_execute($queryDelete);
+
+			$queryUpdate = mysqli_prepare($koneksi, "UPDATE tractiontimbangan SET IDPerson=?, KodeLokasi=? WHERE NoTransaksi=?");
+			mysqli_stmt_bind_param($queryUpdate, "sss", $IDPerson, $KodeLokasi, $NoTransaksi);
+			mysqli_stmt_execute($queryUpdate);
+
+			// SC lama
+			// mysqli_query($koneksi,"DELETE FROM trtimbanganitem WHERE NoTransaksi='$NoTransaksi'");
 			//update 
-			$query = mysqli_query($koneksi,"UPDATE tractiontimbangan SET IDPerson='$IDPerson', KodeLokasi='$KodeLokasi' WHERE NoTransaksi='$NoTransaksi'");
-			if ($query){
+			// $query = mysqli_query($koneksi,"UPDATE tractiontimbangan SET IDPerson='$IDPerson', KodeLokasi='$KodeLokasi' WHERE NoTransaksi='$NoTransaksi'");
+			if ($queryUpdate){
 				InsertLog($koneksi, 'Edit Data', 'Mengubah User Pemohon Transaksi Penerimaan Timbangan User', $login_id, $NoTransaksi, 'Transaksi Tera Di Lokasi');
 				echo '<script language="javascript">document.location="TrTeraDilokasi.php?id='.base64_encode($NoTransaksi).'";</script>';
 			}else{
@@ -400,56 +556,140 @@ $TanggalNOW = date("Y-m-d");
 				  });
 				  </script>';
 			}
+			mysqli_stmt_close($queryDelete);
+			mysqli_stmt_close($queryUpdate);
 		}
 	}
 	
 	//Simpan Transaksi Penerimaan
 	if(isset($_POST['SimpanTransaksi'])){
 		// cek apakah sudah ada permohonan
-		$cek = @mysqli_query($koneksi, "SELECT * from trtimbanganitem where NoTransaksi='$NoTransaksi'");
-		$num = @mysqli_num_rows($cek);
+		$query = mysqli_prepare($koneksi, "SELECT * FROM trtimbanganitem WHERE NoTransaksi=?");
+
+		mysqli_stmt_bind_param($query, "s", $NoTransaksi);
+
+		mysqli_stmt_execute($query);
+
+		mysqli_stmt_store_result($query);
+
+		$num = mysqli_stmt_num_rows($query);
+
+		mysqli_stmt_close($query);
+
+		// $cek = @mysqli_query($koneksi, "SELECT * from trtimbanganitem where NoTransaksi='$NoTransaksi'");
+		// $num = @mysqli_num_rows($cek);
 		// echo $num;
 		
 		if($num <= 0){
 			echo '<script type="text/javascript">swal( "Item Timbangan Belum Ada!", " Silahkan inputkan item timbangan user ", "error" ); </script>';
 		}else{ 
-			$res = @mysqli_query($koneksi, "SELECT NoRefAmbil from tractiontimbangan where NoTransaksi='$NoTransaksi'");
-			$check = @mysqli_fetch_array($res);
+			$query = mysqli_prepare($koneksi, "SELECT NoRefAmbil FROM tractiontimbangan WHERE NoTransaksi=?");
+
+			mysqli_stmt_bind_param($query, "s", $NoTransaksi);
+
+			mysqli_stmt_execute($query);
+
+			mysqli_stmt_bind_result($query, $NoRefAmbil);
+
+			mysqli_stmt_fetch($query);
+
+			mysqli_stmt_close($query);
+
+			// SC lama
+			// $res = @mysqli_query($koneksi, "SELECT NoRefAmbil from tractiontimbangan where NoTransaksi='$NoTransaksi'");
+			// $check = @mysqli_fetch_array($res);
 			
-			
-			if ($check[0] == null OR $check[0] == ''){
+			if (empty($NoRefAmbil)){
 					// membuat id no ref tera
-					$sql = @mysqli_query($koneksi, "SELECT RIGHT(NoRefTera,8) AS kode FROM tractiontimbangan ORDER BY NoRefTera DESC LIMIT 1"); 
-					$nums = mysqli_num_rows($sql);
-					if($nums <> 0){
-						 $data = mysqli_fetch_array($sql);
-						 $kode = $data['kode'] + 1;
-					}else{
-						 $kode = 1;
+					$query = mysqli_prepare($koneksi, "SELECT RIGHT(NoRefTera, 8) AS kode FROM tractiontimbangan ORDER BY NoRefTera DESC LIMIT 1");
+
+					mysqli_stmt_execute($query);
+
+					mysqli_stmt_bind_result($query, $kode);
+
+					mysqli_stmt_fetch($query);
+
+					$nums = mysqli_stmt_num_rows($query);
+
+					if ($nums != 0) {
+						$kode += 1;
+					} else {
+						$kode = 1;
 					}
+
+					mysqli_stmt_close($query);
+
+					// SC lama
+					// $sql = @mysqli_query($koneksi, "SELECT RIGHT(NoRefTera,8) AS kode FROM tractiontimbangan ORDER BY NoRefTera DESC LIMIT 1"); 
+					// $nums = mysqli_num_rows($sql);
+					// if($nums <> 0){
+					// 	 $data = mysqli_fetch_array($sql);
+					// 	 $kode = $data['kode'] + 1;
+					// }else{
+					// 	 $kode = 1;
+					// }
+
 					//mulai bikin kode
 					 $bikin_kode = str_pad($kode, 8, "0", STR_PAD_LEFT);
 					 $kode_jadi = "TB-".$Tanggal."-".$bikin_kode;
-					
-					//Noref Ambil
-					$sql1 = @mysqli_query($koneksi, "SELECT RIGHT(NoRefAmbil,8) AS kodeambil FROM tractiontimbangan ORDER BY NoRefAmbil DESC LIMIT 1"); 
-					$nums1 = mysqli_num_rows($sql1);
-					if($nums1 <> 0){
-						 $data1 = mysqli_fetch_array($sql1);
-						 $kode1 = $data1['kodeambil'] + 1;
-					}else{
-						 $kode1 = 1;
-					}
-					//mulai bikin kode
-					 $bikin_kode1 = str_pad($kode1, 8, "0", STR_PAD_LEFT);
-					 $kode_ambil = "AML-".$Tanggal."-".$bikin_kode1;
 				
-				$query = mysqli_query($koneksi,"UPDATE tractiontimbangan SET NoSKRD='$NoSKRD', TotalRetribusi='$TotalRetribusi',KeteranganTera='$KeteranganTera',NoRefTera='$kode_jadi',NoRefAmbil='$kode_ambil',IsDiambil=b'1',TglAmbil='$TanggalTransaksi',IsDitera=b'1',UserTera='$login_id',StatusTransaksi='SELESAI',TglTera='$TanggalTransaksi' WHERE NoTransaksi='$NoTransaksi' and IDPerson='$IDPerson'");
+					//Noref Ambil
+					
+					$query = mysqli_prepare($koneksi, "SELECT RIGHT(NoRefAmbil, 8) AS kodeambil FROM tractiontimbangan ORDER BY NoRefAmbil DESC LIMIT 1");
+
+					mysqli_stmt_execute($query);
+
+					mysqli_stmt_bind_result($query, $kodeambil);
+
+					mysqli_stmt_fetch($query);
+
+					$nums1 = mysqli_stmt_num_rows($query);
+
+					if ($nums1 != 0) {
+						$kode1 = $kodeambil + 1;
+					} else {
+						$kode1 = 1;
+					}
+
+					mysqli_stmt_close($query1);
+
+					// SC lama
+					// $sql1 = @mysqli_query($koneksi, "SELECT RIGHT(NoRefAmbil,8) AS kodeambil FROM tractiontimbangan ORDER BY NoRefAmbil DESC LIMIT 1"); 
+					// $nums1 = mysqli_num_rows($sql1);
+					// if($nums1 <> 0){
+					// 	 $data1 = mysqli_fetch_array($sql1);
+					// 	 $kode1 = $data1['kodeambil'] + 1;
+					// }else{
+					// 	 $kode1 = 1;
+					// }
+
+					//mulai bikin kode
+					$bikin_kode1 = str_pad($kode1, 8, "0", STR_PAD_LEFT);
+					$kode_ambil = "AML-".$Tanggal."-".$bikin_kode1;
+				
+					$query = mysqli_prepare($koneksi, "UPDATE tractiontimbangan SET NoSKRD=?, TotalRetribusi=?, KeteranganTera=?, NoRefTera=?, NoRefAmbil=?, IsDiambil=?, TglAmbil=?, IsDitera=?, UserTera=?, StatusTransaksi=?, TglTera=? WHERE NoTransaksi=? AND IDPerson=?");
+
+					mysqli_stmt_bind_param($query, "sdsdssdssssss", $NoSKRD, $TotalRetribusi, $KeteranganTera, $kode_jadi, $kode_ambil, $IsDiambil, $TanggalTransaksi, $IsDitera, $login_id, $StatusTransaksi, $TanggalTransaksi, $NoTransaksi, $IDPerson);
+
+					mysqli_stmt_execute($query);
+
+					// Close the statement
+					mysqli_stmt_close($query);
+
+					// $query = mysqli_query($koneksi,"UPDATE tractiontimbangan SET NoSKRD='$NoSKRD', TotalRetribusi='$TotalRetribusi',KeteranganTera='$KeteranganTera',NoRefTera='$kode_jadi',NoRefAmbil='$kode_ambil',IsDiambil=b'1',TglAmbil='$TanggalTransaksi',IsDitera=b'1',UserTera='$login_id',StatusTransaksi='SELESAI',TglTera='$TanggalTransaksi' WHERE NoTransaksi='$NoTransaksi' and IDPerson='$IDPerson'");
 			}else{
-				$query = mysqli_query($koneksi,"UPDATE tractiontimbangan SET NoSKRD='$NoSKRD', TotalRetribusi='$TotalRetribusi',KeteranganTera='$KeteranganTera',IsDiambil=b'1',TglAmbil='$TanggalTransaksi',IsDitera=b'1',UserTera='$login_id',StatusTransaksi='SELESAI',TglTera='$TanggalTransaksi' WHERE NoTransaksi='$NoTransaksi' and IDPerson='$IDPerson'");
+				$query = mysqli_prepare($koneksi, "UPDATE tractiontimbangan SET NoSKRD=?, TotalRetribusi=?, KeteranganTera=?, IsDiambil=?, TglAmbil=?, IsDitera=?, UserTera=?, StatusTransaksi=?, TglTera=? WHERE NoTransaksi=? AND IDPerson=?");
+
+				mysqli_stmt_bind_param($query, "sdsdssdsss", $NoSKRD, $TotalRetribusi, $KeteranganTera, $IsDiambil, $TanggalTransaksi, $IsDitera, $login_id, $StatusTransaksi, $TanggalTera, $NoTransaksi, $IDPerson);
+
+				mysqli_stmt_execute($query);
+
+				mysqli_stmt_close($query);
+
+				// SC lama
+				// $query = mysqli_query($koneksi,"UPDATE tractiontimbangan SET NoSKRD='$NoSKRD', TotalRetribusi='$TotalRetribusi',KeteranganTera='$KeteranganTera',IsDiambil=b'1',TglAmbil='$TanggalTransaksi',IsDitera=b'1',UserTera='$login_id',StatusTransaksi='SELESAI',TglTera='$TanggalTransaksi' WHERE NoTransaksi='$NoTransaksi' and IDPerson='$IDPerson'");
 			}
-		
-			
+	
 			if ($query){
 				InsertLog($koneksi, 'Edit Data', 'Transaksi Tera DiLokasi', $login_id, $NoTransaksi, 'Transaksi Tera Di Lokasi');
 				echo '<script language="javascript">document.location="TrTeraDilokasi.php?id='.base64_encode($NoTransaksi).'";</script>';
@@ -470,14 +710,46 @@ $TanggalNOW = date("Y-m-d");
 	
 	//Hapus Transaksi Penerimaan
 	if(base64_decode(@$_GET['aksi'])=='HapusTransaksi'){
-		
-		$HapusGambar = mysqli_query($koneksi,"SELECT IDTimbangan FROM trtimbanganitem WHERE NoTransaksi='".htmlspecialchars(base64_decode($_GET['tr']))."'");
-		$data=mysqli_fetch_array($HapusGambar);
+		$decoded_tr = htmlspecialchars(base64_decode($_GET['tr']));
 
-		mysqli_query($koneksi,"DELETE FROM trtimbanganitem WHERE NoTransaksi='".htmlspecialchars(base64_decode($_GET['tr']))."'");
-		$query = mysqli_query($koneksi,"delete from tractiontimbangan WHERE NoTransaksi='".htmlspecialchars(base64_decode($_GET['tr']))."' ");
-		if($query){
-			mysqli_query($koneksi,"update timbanganperson set StatusUTTP='Aktif' where IDTimbangan='".$data['IDTimbangan']."'");
+		$query = mysqli_prepare($koneksi, "SELECT IDTimbangan FROM trtimbanganitem WHERE NoTransaksi=?");
+
+		mysqli_stmt_bind_param($query, "s", $decoded_tr);
+
+		mysqli_stmt_execute($query);
+
+		mysqli_stmt_bind_result($query, $IDTimbangan);
+
+		mysqli_stmt_fetch($query);
+
+		mysqli_stmt_close($query);
+
+		// $HapusGambar = mysqli_query($koneksi,"SELECT IDTimbangan FROM trtimbanganitem WHERE NoTransaksi='".htmlspecialchars(base64_decode($_GET['tr']))."'");
+		// $data=mysqli_fetch_array($HapusGambar);
+
+		$decoded_tr = htmlspecialchars(base64_decode($_GET['tr']));
+
+		// Prepare the first SQL statement to delete records from trtimbanganitem
+		$queryDelete1 = mysqli_prepare($koneksi, "DELETE FROM trtimbanganitem WHERE NoTransaksi=?");
+		mysqli_stmt_bind_param($queryDelete1, "s", $decoded_tr);
+		mysqli_stmt_execute($queryDelete1);
+		mysqli_stmt_close($queryDelete1);
+
+		// Prepare the second SQL statement to delete records from tractiontimbangan
+		$queryDelete2 = mysqli_prepare($koneksi, "DELETE FROM tractiontimbangan WHERE NoTransaksi=?");
+		mysqli_stmt_bind_param($queryDelete2, "s", $decoded_tr);
+		mysqli_stmt_execute($queryDelete2);
+
+		// Check if the deletion was successful
+		// mysqli_query($koneksi,"DELETE FROM trtimbanganitem WHERE NoTransaksi='".htmlspecialchars(base64_decode($_GET['tr']))."'");
+		// $query = mysqli_query($koneksi,"delete from tractiontimbangan WHERE NoTransaksi='".htmlspecialchars(base64_decode($_GET['tr']))."' ");
+		if(mysqli_stmt_affected_rows($queryDelete2) > 0) {
+			$queryUpdate = mysqli_prepare($koneksi, "UPDATE timbanganperson SET StatusUTTP='Aktif' WHERE IDTimbangan=?");
+			mysqli_stmt_bind_param($queryUpdate, "s", $IDTimbangan);
+			mysqli_stmt_execute($queryUpdate);
+			mysqli_stmt_close($queryUpdate);
+
+			// mysqli_query($koneksi,"update timbanganperson set StatusUTTP='Aktif' where IDTimbangan='$IDTimbangan'");
 			InsertLog($koneksi, 'Hapus Data', 'Menghapus Data Transaksi Tera Timbangan Di Lokasi', $login_id, base64_decode(@$_GET['tr']), 'Transaksi Tera Di Lokasi');
 			echo '<script language="javascript">document.location="TrTeraDilokasi.php"; </script>';
 		}else{
@@ -495,34 +767,128 @@ $TanggalNOW = date("Y-m-d");
 	}
 	
 	if(isset($_POST['TeraUTTP'])){
-		$AmbilNoUrut=mysqli_query($koneksi,"SELECT MAX(NoUrutTrans) as NoSaatIni FROM trtimbanganitem WHERE NoTransaksi='$NoTransaksi'");
-		$Data=mysqli_fetch_assoc($AmbilNoUrut);
-		$NoSekarang = $Data['NoSaatIni'];
-		$Urutan = $NoSekarang+1;
+		$query = mysqli_prepare($koneksi, "SELECT MAX(NoUrutTrans) as NoSaatIni FROM trtimbanganitem WHERE NoTransaksi=?");
+
+		mysqli_stmt_bind_param($query, "s", $NoTransaksi);
+
+		mysqli_stmt_execute($query);
+
+		mysqli_stmt_bind_result($query, $NoSaatIni);
+
+		mysqli_stmt_fetch($query);
+
+		$Urutan = $NoSaatIni + 1;
+
+		mysqli_stmt_close($query);
+
+		// $AmbilNoUrut=mysqli_query($koneksi,"SELECT MAX(NoUrutTrans) as NoSaatIni FROM trtimbanganitem WHERE NoTransaksi='$NoTransaksi'");
+		// $Data=mysqli_fetch_assoc($AmbilNoUrut);
+		// $NoSekarang = $Data['NoSaatIni'];
+		// $Urutan = $NoSekarang+1;
 				
 		@$Status = isset($HasilAction1) && $HasilAction1 === "TERA BATAL" ? "Non Aktif" : "Aktif";
-		mysqli_query($koneksi,"update timbanganperson set StatusUTTP='$Status' where IDTimbangan='$IDTimbangan'");
+		$query = mysqli_prepare($koneksi, "UPDATE timbanganperson SET StatusUTTP=? WHERE IDTimbangan=?");
+
+		mysqli_stmt_bind_param($query, "ss", $Status, $IDTimbangan);
+
+		mysqli_stmt_execute($query);
+
+		mysqli_stmt_close($query);
+
+		// mysqli_query($koneksi,"update timbanganperson set StatusUTTP='$Status' where IDTimbangan='$IDTimbangan'");
 		
-		$sql 	= mysqli_query($koneksi, ("SELECT a.RetribusiDiLokasi,b.UkuranRealTimbangan,a.NilaiBawah,a.RetPenambahanDilokasi,a.NilaiTambah FROM detilukuran a join timbanganperson b on (a.KodeTimbangan,a.KodeKelas,a.KodeUkuran) = (b.KodeTimbangan,b.KodeKelas,b.KodeUkuran) WHERE b.IDTimbangan='$IDTimbangan'"));
-		$res    = mysqli_fetch_array($sql);
+		$query = mysqli_prepare($koneksi, "SELECT a.RetribusiDiLokasi, b.UkuranRealTimbangan, a.NilaiBawah, a.RetPenambahanDilokasi, a.NilaiTambah FROM detilukuran a JOIN timbanganperson b ON (a.KodeTimbangan = b.KodeTimbangan AND a.KodeKelas = b.KodeKelas AND a.KodeUkuran = b.KodeUkuran) WHERE b.IDTimbangan=?");
+
+		mysqli_stmt_bind_param($query, "s", $IDTimbangan);
+
+		mysqli_stmt_execute($query);
+
+		mysqli_stmt_bind_result($query, $RetribusiDiLokasi, $UkuranRealTimbangan, $NilaiBawah, $RetPenambahanDilokasi, $NilaiTambah);
+
+		mysqli_stmt_fetch($query);
+
+		$res = array(
+				"RetribusiDiLokasi" => $RetribusiDiLokasi, 
+				"UkuranRealTimbangan" => $UkuranRealTimbangan, 
+				"NilaiBawah" => $NilaiBawah, 
+				"RetPenambahanDilokasi" => $RetPenambahanDilokasi, 
+				"NilaiTambah" => $NilaiTambah
+			);
+
+		mysqli_stmt_close($query);
+
+		// $sql 	= mysqli_query($koneksi, ("SELECT a.RetribusiDiLokasi,b.UkuranRealTimbangan,a.NilaiBawah,a.RetPenambahanDilokasi,a.NilaiTambah FROM detilukuran a join timbanganperson b on (a.KodeTimbangan,a.KodeKelas,a.KodeUkuran) = (b.KodeTimbangan,b.KodeKelas,b.KodeUkuran) WHERE b.IDTimbangan='$IDTimbangan'"));
+		// $res    = mysqli_fetch_array($sql);
 		
 		if ($HasilAction1 == 'TERA BATAL'){
-			$SimpanData = @mysqli_query($koneksi, "INSERT INTO trtimbanganitem (NoTransaksi,NoUrutTrans,IDPerson,IDTimbangan,UserName,NominalRetribusi,KodeLokasi,HasilAction1,HasilAction2,TanggalTransaksi)VALUES('$NoTransaksi','$Urutan','$IDPerson','$IDTimbangan','$login_id','0','$KodeLokasi','$HasilAction1','$HasilAction2','$TanggalNOW')"); 
+			$query = mysqli_prepare($koneksi, "INSERT INTO trtimbanganitem (NoTransaksi, NoUrutTrans, IDPerson, IDTimbangan, UserName, NominalRetribusi, KodeLokasi, HasilAction1, HasilAction2, TanggalTransaksi) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+
+			mysqli_stmt_bind_param($query, "ssssssssss", $NoTransaksi, $Urutan, $IDPerson, $IDTimbangan, $login_id, $NominalRetribusi, $KodeLokasi, $HasilAction1, $HasilAction2, $TanggalNOW);
+
+			mysqli_stmt_execute($query);
+
+			mysqli_stmt_close($query);
+
+			// $SimpanData = @mysqli_query($koneksi, "INSERT INTO trtimbanganitem (NoTransaksi,NoUrutTrans,IDPerson,IDTimbangan,UserName,NominalRetribusi,KodeLokasi,HasilAction1,HasilAction2,TanggalTransaksi)VALUES('$NoTransaksi','$Urutan','$IDPerson','$IDTimbangan','$login_id','0','$KodeLokasi','$HasilAction1','$HasilAction2','$TanggalNOW')"); 
+			
 			$Total = $Retribusi;
-			mysqli_query($koneksi,"update tractiontimbangan set TotalRetribusi='$Total' where NoTransaksi='$NoTransaksi'");
+			
+			$query = mysqli_prepare($koneksi, "UPDATE tractiontimbangan SET TotalRetribusi=? WHERE NoTransaksi=?");
+
+			mysqli_stmt_bind_param($query, "ss", $Total, $NoTransaksi);
+
+			mysqli_stmt_execute($query);
+
+			mysqli_stmt_close($query);
+
+			// mysqli_query($koneksi,"update tractiontimbangan set TotalRetribusi='$Total' where NoTransaksi='$NoTransaksi'");
 			
 		}else{
 			if ($res['NilaiBawah'] == '0' AND $res['RetPenambahanDilokasi'] == '0' ) {
-				$SimpanData = @mysqli_query($koneksi, "INSERT INTO trtimbanganitem (NoTransaksi,NoUrutTrans,IDPerson,IDTimbangan,UserName,NominalRetribusi,KodeLokasi,HasilAction1,HasilAction2,TanggalTransaksi)VALUES('$NoTransaksi','$Urutan','$IDPerson','$IDTimbangan','$login_id','".$res[0]."','$KodeLokasi','$HasilAction1','$HasilAction2','$TanggalNOW')"); 
+				$query = mysqli_prepare($koneksi, "INSERT INTO trtimbanganitem (NoTransaksi, NoUrutTrans, IDPerson, IDTimbangan, UserName, NominalRetribusi, KodeLokasi, HasilAction1, HasilAction2, TanggalTransaksi) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+
+				// Bind the parameters
+				mysqli_stmt_bind_param($query, "ssssssssss", $NoTransaksi, $Urutan, $IDPerson, $IDTimbangan, $login_id, $res[0], $KodeLokasi, $HasilAction1, $HasilAction2, $TanggalNOW);
+
+				mysqli_stmt_execute($query);
+
+				// mysqli_stmt_close($query);
+
+				// $SimpanData = @mysqli_query($koneksi, "INSERT INTO trtimbanganitem (NoTransaksi,NoUrutTrans,IDPerson,IDTimbangan,UserName,NominalRetribusi,KodeLokasi,HasilAction1,HasilAction2,TanggalTransaksi)VALUES('$NoTransaksi','$Urutan','$IDPerson','$IDTimbangan','$login_id','".$res[0]."','$KodeLokasi','$HasilAction1','$HasilAction2','$TanggalNOW')"); 
+				
 				$Total = $Retribusi+$res[0];
-				mysqli_query($koneksi,"update tractiontimbangan set TotalRetribusi='$Total' where NoTransaksi='$NoTransaksi'");
+				$query = mysqli_prepare($koneksi, "UPDATE tractiontimbangan SET TotalRetribusi=? WHERE NoTransaksi=?");
+
+				mysqli_stmt_bind_param($query, "ds", $Total, $NoTransaksi);
+
+				mysqli_stmt_execute($query);
+
+				mysqli_stmt_close($query);
+				// mysqli_query($koneksi,"update tractiontimbangan set TotalRetribusi='$Total' where NoTransaksi='$NoTransaksi'");
 			}else{
 				$Nilai = ($res['UkuranRealTimbangan']-$res['NilaiTambah'])/$res['NilaiBawah'];
 				$Penambahan =($Nilai*$res['RetPenambahanDilokasi'])+$res['RetribusiDiLokasi'];
 				
-				$SimpanData = @mysqli_query($koneksi, "INSERT INTO trtimbanganitem (NoTransaksi,NoUrutTrans,IDPerson,IDTimbangan,UserName,NominalRetribusi,KodeLokasi,HasilAction1,HasilAction2,TanggalTransaksi)VALUES('$NoTransaksi','$Urutan','$IDPerson','$IDTimbangan','$UserName','".$Penambahan."','$KodeLokasi','$HasilAction1','$HasilAction2','$TanggalNOW')"); 
+				$query = mysqli_prepare($koneksi, "INSERT INTO trtimbanganitem (NoTransaksi, NoUrutTrans, IDPerson, IDTimbangan, UserName, NominalRetribusi, KodeLokasi, HasilAction1, HasilAction2, TanggalTransaksi) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+
+				mysqli_stmt_bind_param($query, "ssssssssss", $NoTransaksi, $Urutan, $IDPerson, $IDTimbangan, $UserName, $Penambahan, $KodeLokasi, $HasilAction1, $HasilAction2, $TanggalNOW);
+
+				mysqli_stmt_execute($query);
+
+				mysqli_stmt_close($query);
+
+				// $SimpanData = @mysqli_query($koneksi, "INSERT INTO trtimbanganitem (NoTransaksi,NoUrutTrans,IDPerson,IDTimbangan,UserName,NominalRetribusi,KodeLokasi,HasilAction1,HasilAction2,TanggalTransaksi)VALUES('$NoTransaksi','$Urutan','$IDPerson','$IDTimbangan','$UserName','".$Penambahan."','$KodeLokasi','$HasilAction1','$HasilAction2','$TanggalNOW')"); 
 				$Total = $Retribusi+$Penambahan;
-				mysqli_query($koneksi,"update tractiontimbangan set TotalRetribusi='$Total' where NoTransaksi='$NoTransaksi'");
+
+				$query = mysqli_prepare($koneksi, "UPDATE tractiontimbangan SET TotalRetribusi=? WHERE NoTransaksi=?");
+
+				mysqli_stmt_bind_param($query, "ds", $Total, $NoTransaksi);
+
+				mysqli_stmt_execute($query);
+
+				mysqli_stmt_close($query);
+				
+				// mysqli_query($koneksi,"update tractiontimbangan set TotalRetribusi='$Total' where NoTransaksi='$NoTransaksi'");
 			}
 			
 		}
