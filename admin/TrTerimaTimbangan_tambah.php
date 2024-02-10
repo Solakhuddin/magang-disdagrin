@@ -10,9 +10,27 @@ $Tanggal = date('Ymd');
 if(@$_GET['id']!=null){
 	$Sebutan = 'Data Penerimaan Timbangan';	
 	$Readonly = 'readonly';
+	$notrans = htmlspecialchars(base64_decode($_GET['id']));
 	
-	@$Edit = mysqli_query($koneksi,"SELECT a.NamaPerson,b.IDPerson,b.NoTransaksi,c.IDTimbangan,b.TglTransaksi,b.Keterangan FROM mstperson a join tractiontimbangan b on a.IDPerson=b.IDPerson left join trtimbanganitem c on b.NoTransaksi=c.NoTransaksi WHERE b.NoTransaksi='".htmlspecialchars(base64_decode($_GET['id']))."'");
-	@$RowData = mysqli_fetch_assoc($Edit);
+	$edit = mysqli_prepare($koneksi,"SELECT a.NamaPerson,b.IDPerson,b.NoTransaksi,c.IDTimbangan,b.TglTransaksi,b.Keterangan FROM mstperson a join tractiontimbangan b on a.IDPerson=b.IDPerson left join trtimbanganitem c on b.NoTransaksi=c.NoTransaksi WHERE b.NoTransaksi = ? ");
+	mysqli_stmt_bind_param($edit, 's', $notrans);
+	mysqli_stmt_execute($edit);
+
+	mysqli_stmt_store_result($edit); // Store the result set
+	mysqli_stmt_bind_result($edit, $namaPerson, $idPerson, $noTransaksi, $idTimbangan, $tglTransaksi, $keterangan);
+	mysqli_stmt_fetch($edit);
+
+	$RowData = array(
+		"namaPerson" => $namaPerson,
+		"idPerson" => $idPerson,
+		"noTransaksi" => $noTransaksi,
+		"idTimbangan" => $idTimbangan,
+		"tglTransaksi" => $tglTransaksi,
+		"keterangan" => $keterangan
+	);
+
+	// @$Edit = mysqli_query($koneksi,"SELECT a.NamaPerson,b.IDPerson,b.NoTransaksi,c.IDTimbangan,b.TglTransaksi,b.Keterangan FROM mstperson a join tractiontimbangan b on a.IDPerson=b.IDPerson left join trtimbanganitem c on b.NoTransaksi=c.NoTransaksi WHERE b.NoTransaksi='".htmlspecialchars(base64_decode($_GET['id']))."'");
+	// @$RowData = mysqli_fetch_assoc($Edit);
 }else{
 	$Sebutan = 'Tambah Data';	
 }
@@ -189,9 +207,20 @@ if(@$_GET['id']!=null){
                             </thead>
                             <tbody><!-- -->
                                 <?php
+								$query = mysqli_prepare($koneksi, "SELECT * FROM mstperson WHERE JenisPerson LIKE ? AND IsVerified = ? ORDER BY NamaPerson ASC");
+
+								$jenisPerson = "%Timbangan%";
+								$isVerified = 1;
+								mysqli_stmt_bind_param($query, 'si', $jenisPerson, $isVerified);
+
+								mysqli_stmt_execute($query);
+
+								$result = mysqli_stmt_get_result($query);
+
+                                // $query = mysqli_query($koneksi,"SELECT * FROM mstperson WHERE  JenisPerson LIKE '%Timbangan%' AND IsVerified=b'1'  ORDER BY NamaPerson ASC");
 								
-                                $query = mysqli_query($koneksi,"SELECT * FROM mstperson WHERE  JenisPerson LIKE '%Timbangan%' AND IsVerified=b'1'  ORDER BY NamaPerson ASC");
-                                while ($data = mysqli_fetch_array($query)) {
+								while ($data = mysqli_fetch_array($result)) {
+                                // while ($data = mysqli_fetch_array($query)) {
                                     ?>
                                     <tr id="pilih" data-id="<?php echo $data['IDPerson']; ?>" data-nama="<?php echo $data['NamaPerson']; ?>">
                                         <td><?php echo $data['NamaPerson']; ?></td>
@@ -207,6 +236,7 @@ if(@$_GET['id']!=null){
 										</td>
                                     </tr>
                                     <?php
+									mysqli_stmt_close($query);
                                 }
                                 ?>
                             </tbody>
