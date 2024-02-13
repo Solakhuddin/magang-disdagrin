@@ -45,19 +45,42 @@ if(isset($_POST['SimpanData'])){
 
 function GetIDTransaksi($koneksi) {
 	$Tanggal = date("Ymd");
-	$sql = "SELECT RIGHT(NoTransRet,7) AS kode FROM trretribusipasar WHERE NoTransRet LIKE '%$Tanggal%' ORDER BY NoTransRet DESC LIMIT 1";
-	$res = mysqli_query($koneksi, $sql);
-	if(mysqli_num_rows($res) > 0){
-		$result = mysqli_fetch_array($res);
-		if ($result['kode'] == null) {
-			$kode = 1;
-		} else {
-			$kode = ++$result['kode'];
-		}	
-	}else{
-		$kode = 1;
-	}
+	// $sql = "SELECT RIGHT(NoTransRet,7) AS kode FROM trretribusipasar WHERE NoTransRet LIKE '%$Tanggal%' ORDER BY NoTransRet DESC LIMIT 1";
+	// $res = mysqli_query($koneksi, $sql);
+	// if(mysqli_num_rows($res) > 0){
+	// 	$result = mysqli_fetch_array($res);
+	// 	if ($result['kode'] == null) {
+	// 		$kode = 1;
+	// 	} else {
+	// 		$kode = ++$result['kode'];
+	// 	}	
+	// }else{
+	// 	$kode = 1;
+	// }
+	$sql = "SELECT RIGHT(NoTransRet, 7) AS kode FROM trretribusipasar WHERE NoTransRet LIKE CONCAT('%', ?, '%') ORDER BY NoTransRet DESC LIMIT 1";
+
+	$stmt = mysqli_prepare($koneksi, $sql);
+
+	mysqli_stmt_bind_param($stmt, "s", $tanggal);
+
+	mysqli_stmt_execute($stmt);
+
+	mysqli_stmt_store_result($stmt);
 	
+	if (mysqli_stmt_num_rows($stmt) > 0) {
+		mysqli_stmt_bind_result($stmt, $result_kode);
+		
+		mysqli_stmt_fetch($stmt);
+		
+		if ($result_kode !== null) {
+			$kode = $result_kode + 1;
+		}else{
+			$kode = 1;
+		}
+	}
+
+	mysqli_stmt_close($stmt);
+
 	$bikin_kode = str_pad($kode, 7, "0", STR_PAD_LEFT);
 	return 'TRP-' . $Tanggal . '-' . $bikin_kode ;
 }		
