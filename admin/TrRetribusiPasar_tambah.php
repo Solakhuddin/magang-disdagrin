@@ -97,14 +97,29 @@ $Tanggal = date('Y-m-d');
 													<select  id="KodePasar"  class="form-control">	
 														<option value="">Pilih Pasar</option>
 														<?php
-															$menu = mysqli_query($koneksi,"SELECT * FROM mstpasar");
-															while($kode = mysqli_fetch_array($menu)){
-																if($kode['KodePasar']==@$_REQUEST['KodePasar']){
-																	echo "<option value=\"".$kode['KodePasar']."\" selected >".$kode['NamaPasar']."</option>\n";
-																}else{
-																	echo "<option value=\"".$kode['KodePasar']."\" >".$kode['NamaPasar']."</option>\n";
-																}
+															// $menu = mysqli_query($koneksi,"SELECT * FROM mstpasar");
+															// while($kode = mysqli_fetch_array($menu)){
+															// 	if($kode['KodePasar']==@$_REQUEST['KodePasar']){
+															// 		echo "<option value=\"".$kode['KodePasar']."\" selected >".$kode['NamaPasar']."</option>\n";
+															// 	}else{
+															// 		echo "<option value=\"".$kode['KodePasar']."\" >".$kode['NamaPasar']."</option>\n";
+															// 	}
+															// }
+															$query = "SELECT KodePasar, NamaPasar FROM mstpasar";
+
+															$stmt = mysqli_prepare($koneksi, $query);
+
+															mysqli_stmt_execute($stmt);
+
+															mysqli_stmt_bind_result($stmt, $kodePasar, $namaPasar);
+
+															while (mysqli_stmt_fetch($stmt)) {
+																$selected = ($kodePasar == @$_REQUEST['KodePasar']) ? 'selected' : '';
+
+																echo "<option value=\"$kodePasar\" $selected>$namaPasar</option>\n";
 															}
+
+															mysqli_stmt_close($stmt);
 														?>
 													</select>
 												</div>
@@ -118,22 +133,42 @@ $Tanggal = date('Y-m-d');
 													<select id="IDLapak" class="form-control" name="IDLapak" required>
 														<?php
 															echo "<option value=''>--- Lapak Pasar ---</option>";
-															$menu = mysqli_query($koneksi,"SELECT a.* FROM lapakpasar a 
-															LEFT JOIN lapakperson  b on (a.KodePasar,a.IDLapak)=(b.KodePasar,b.IDLapak)
-															where a.KodePasar='".$RowData['KodePasar']."' and b.IDPerson is null ORDER BY BlokLapak");
-															while($kode1 = mysqli_fetch_array($menu)){
-																if($RowData['IDLapak'] !== NULL){
-																	if($kode1['IDLapak'] === $RowData['IDLapak']){
-																		echo "<option value=\"".$kode1['IDLapak']."\" selected='selected'>".$kode1['BlokLapak']." ".$kode1['NomorLapak']."</option>\n";
-																	}else{
-																		echo "<option value=\"".$kode1['IDLapak']."\" >".$kode1['BlokLapak']." ".$kode1['NomorLapak']."</option>\n";
-																	}
-																}else{
-																	echo "<option value=\"".$kode1['IDLapak']."\" >".$kode1['BlokLapak']." ".$kode1['NomorLapak']."</option>\n";
-																}
-																
-																
+															// $menu = mysqli_query($koneksi,"SELECT a.* FROM lapakpasar a 
+															// LEFT JOIN lapakperson  b on (a.KodePasar,a.IDLapak)=(b.KodePasar,b.IDLapak)
+															// where a.KodePasar='".$RowData['KodePasar']."' and b.IDPerson is null ORDER BY BlokLapak");
+															// while($kode1 = mysqli_fetch_array($menu)){
+															// 	if($RowData['IDLapak'] !== NULL){
+															// 		if($kode1['IDLapak'] === $RowData['IDLapak']){
+															// 			echo "<option value=\"".$kode1['IDLapak']."\" selected='selected'>".$kode1['BlokLapak']." ".$kode1['NomorLapak']."</option>\n";
+															// 		}else{
+															// 			echo "<option value=\"".$kode1['IDLapak']."\" >".$kode1['BlokLapak']." ".$kode1['NomorLapak']."</option>\n";
+															// 		}
+															// 	}else{
+															// 		echo "<option value=\"".$kode1['IDLapak']."\" >".$kode1['BlokLapak']." ".$kode1['NomorLapak']."</option>\n";
+															// 	}
+															// }
+															
+															$query = "SELECT a.IDLapak, a.BlokLapak, a.NomorLapak 
+																FROM lapakpasar a 
+																LEFT JOIN lapakperson b ON (a.KodePasar, a.IDLapak) = (b.KodePasar, b.IDLapak) 
+																WHERE a.KodePasar = ? AND b.IDPerson IS NULL 
+																ORDER BY a.BlokLapak";
+
+															$stmt = mysqli_prepare($koneksi, $query);
+
+															mysqli_stmt_bind_param($stmt, "s", $RowData['KodePasar']);
+
+															mysqli_stmt_execute($stmt);
+
+															mysqli_stmt_bind_result($stmt, $IDLapak, $BlokLapak, $NomorLapak);
+
+															while (mysqli_stmt_fetch($stmt)) {
+																$selected = ($RowData['IDLapak'] !== NULL && $IDLapak === $RowData['IDLapak']) ? 'selected="selected"' : '';
+
+																echo "<option value=\"$IDLapak\" $selected>$BlokLapak $NomorLapak</option>\n";
 															}
+
+															mysqli_stmt_close($stmt);
 														?>
 													</select>
 												</div>
