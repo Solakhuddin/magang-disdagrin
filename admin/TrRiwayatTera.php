@@ -10,9 +10,34 @@ $TanggalTransaksi = date("Y-m-d H:i:s");
 if(@$_GET['id']!=null){
 	$Sebutan = 'Terima Pembayaran';	
 	$Readonly = 'readonly';
+
+	$query = mysqli_prepare($koneksi, "SELECT a.NamaPerson, b.IDPerson, b.NoTransaksi, c.IDTimbangan, b.TglTransaksi, b.NoRefDibayar, b.TglAmbil, b.NoSKRD FROM mstperson a JOIN tractiontimbangan b ON a.IDPerson = b.IDPerson LEFT JOIN trtimbanganitem c ON b.NoTransaksi = c.NoTransaksi WHERE b.NoTransaksi = ?");
+
+	mysqli_stmt_bind_param($query, "s", $decodedID);
+
+	$decodedID = base64_decode($_GET['id']);
+
+	mysqli_stmt_execute($query);
+
+	mysqli_stmt_bind_result($query, $NamaPerson, $IDPerson, $NoTransaksi, $IDTimbangan, $TglTransaksi, $NoRefDibayar, $TglAmbil, $NoSKRD);
+
+	mysqli_stmt_fetch($query);
+
+	$RowData = [
+		'NamaPerson' => $NamaPerson,
+		'IDPerson' => $IDPerson,
+		'NoTransaksi' => $NoTransaksi,
+		'IDTimbangan' => $IDTimbangan,
+		'TglTransaksi' => $TglTransaksi,
+		'NoRefDibayar' => $NoRefDibayar,
+		'TglAmbil' => $TglAmbil,
+		'NoSKRD' => $NoSKRD
+	];
+
+	mysqli_stmt_close($query);
 	
-	@$Edit = mysqli_query($koneksi,"SELECT a.NamaPerson,b.IDPerson,b.NoTransaksi,c.IDTimbangan,b.TglTransaksi,b.NoRefDibayar,b.TglAmbil,b.NoSKRD	 FROM mstperson a join tractiontimbangan b on a.IDPerson=b.IDPerson left join trtimbanganitem c on b.NoTransaksi=c.NoTransaksi WHERE b.NoTransaksi='".base64_decode($_GET['id'])."'");
-	@$RowData = mysqli_fetch_assoc($Edit);
+	// @$Edit = mysqli_query($koneksi,"SELECT a.NamaPerson,b.IDPerson,b.NoTransaksi,c.IDTimbangan,b.TglTransaksi,b.NoRefDibayar,b.TglAmbil,b.NoSKRD	 FROM mstperson a join tractiontimbangan b on a.IDPerson=b.IDPerson left join trtimbanganitem c on b.NoTransaksi=c.NoTransaksi WHERE b.NoTransaksi='".base64_decode($_GET['id'])."'");
+	// @$RowData = mysqli_fetch_assoc($Edit);
 }else{
 	$Sebutan = 'Tambah Data';	
 }
@@ -128,14 +153,37 @@ if(@$_GET['id']!=null){
 										// mengatur variabel reload dan sql
 										@$keyword  = $_REQUEST['keyword'];
 										$reload = "TrRiwayatTera.php?pagination=true&keyword=$keyword";
-										$sql =  "SELECT a.NoTransaksi,b.NamaPerson,b.AlamatLengkapPerson,b.IDPerson,a.TotalRetribusi,a.TglTransaksi FROM tractiontimbangan a join mstperson b on a.IDPerson=b.IDPerson Where b.JenisPerson LIKE '%Timbangan%' AND a.IsDibayar=b'1' AND a.IsDiambil=b'1' AND a.StatusTransaksi='SELESAI' AND b.UserName !='dinas' ";
+										// $sql =  "SELECT a.NoTransaksi,b.NamaPerson,b.AlamatLengkapPerson,b.IDPerson,a.TotalRetribusi,a.TglTransaksi FROM tractiontimbangan a join mstperson b on a.IDPerson=b.IDPerson Where b.JenisPerson LIKE '%Timbangan%' AND a.IsDibayar=b'1' AND a.IsDiambil=b'1' AND a.StatusTransaksi='SELESAI' AND b.UserName !='dinas' ";
 										
-										if(@$_REQUEST['keyword']!=null){
-											$sql .= " AND b.NamaPerson LIKE '%".$_REQUEST['keyword']."%'  ";
+										// if(@$_REQUEST['keyword']!=null){
+										// 	$sql .= " AND b.NamaPerson LIKE '%".$_REQUEST['keyword']."%'  ";
+										// }
+										
+										// $sql .=" ORDER BY a.TglTransaksi DESC";
+										// $result = mysqli_query($koneksi,$sql);
+
+										$sql = "SELECT a.NoTransaksi, b.NamaPerson, b.AlamatLengkapPerson, b.IDPerson, a.TotalRetribusi, a.TglTransaksi 
+												FROM tractiontimbangan a 
+												JOIN mstperson b ON a.IDPerson = b.IDPerson 
+												WHERE b.JenisPerson LIKE '%Timbangan%' AND a.IsDibayar = b'1' AND a.IsDiambil = b'1' AND a.StatusTransaksi = 'SELESAI' AND b.UserName != 'dinas'";
+
+										if (!empty($_REQUEST['keyword'])) {
+											$sql .= " AND b.NamaPerson LIKE ?";
 										}
-										
-										$sql .=" ORDER BY a.TglTransaksi DESC";
-										$result = mysqli_query($koneksi,$sql);
+
+										$sql .= " ORDER BY a.TglTransaksi DESC";
+
+										$stmt = mysqli_prepare($koneksi, $sql);
+
+										if (!empty($_REQUEST['keyword'])) {
+											// Bind the parameter for the keyword search
+											$keywordParam = '%' . $_REQUEST['keyword'] . '%';
+											mysqli_stmt_bind_param($stmt, "s", $keywordParam);
+										}
+
+										mysqli_stmt_execute($stmt);
+
+										$result = mysqli_stmt_get_result($stmt);
 										
 										//pagination config start
 										$rpp = 15; // jumlah record per halaman
@@ -366,8 +414,17 @@ if(@$_GET['id']!=null){
 	//Simpan Transaksi Sidang Tera
 	if(isset($_POST['SimpanTransaksi'])){
 		//update 
-		$query = mysqli_query($koneksi,"UPDATE tractiontimbangan SET TglDibayar='$TanggalTransaksi', NoRefDibayar='$NoRefDibayar', KeteranganBayar='$Keterangan', IsDibayar='$IsDibayar' WHERE NoTransaksi='$NoTransaksi'");
-		if ($query){
+		// $query = mysqli_query($koneksi,"UPDATE tractiontimbangan SET TglDibayar='$TanggalTransaksi', NoRefDibayar='$NoRefDibayar', KeteranganBayar='$Keterangan', IsDibayar='$IsDibayar' WHERE NoTransaksi='$NoTransaksi'");
+		$query = "UPDATE tractiontimbangan SET TglDibayar=?, NoRefDibayar=?, KeteranganBayar=?, IsDibayar=? WHERE NoTransaksi=?";
+
+		$stmt = mysqli_prepare($koneksi, $query);
+		mysqli_stmt_bind_param($stmt, "ssssi", $TanggalTransaksi, $NoRefDibayar, $Keterangan, $IsDibayar, $NoTransaksi);
+
+		$exe = mysqli_stmt_execute($stmt);
+
+		mysqli_stmt_close($stmt);
+
+		if ($exe){
 			InsertLog($koneksi, 'Tambah Data', 'Transaksi Terima Pembayaran ', $login_id, $NoTransaksi, 'Transaksi Terima Pembayaran');
 			echo '<script language="javascript">document.location="TrTerimaPembayaran.php";</script>';
 		}else{
@@ -386,20 +443,67 @@ if(@$_GET['id']!=null){
 	
 	//Hapus Transaksi Penerimaan
 	if(base64_decode(@$_GET['aksi'])=='HapusTransaksi'){
-		mysqli_query($koneksi,"UPDATE tractiontimbangan SET TglTera=NULL, NoRefTera=NULL, KeteranganTera=NULL, IsDibayar=NULL, StatusTransaksi='PENERIMAAN' WHERE NoTransaksi='".htmlspecialchars(base64_decode(@$_GET['tr']))."'");
+		// mysqli_query($koneksi,"UPDATE tractiontimbangan SET TglTera=NULL, NoRefTera=NULL, KeteranganTera=NULL, IsDibayar=NULL, StatusTransaksi='PENERIMAAN' WHERE NoTransaksi='".htmlspecialchars(base64_decode(@$_GET['tr']))."'");
 		
-		$HapusGambar = mysqli_query($koneksi,"SELECT FotoAction1,FotoAction2,FotoAction3 FROM trtimbanganitem WHERE NoTransaksi='".htmlspecialchars(base64_decode($_GET['tr']))."'");
-		$data=mysqli_fetch_array($HapusGambar);	
+		// $HapusGambar = mysqli_query($koneksi,"SELECT FotoAction1,FotoAction2,FotoAction3 FROM trtimbanganitem WHERE NoTransaksi='".htmlspecialchars(base64_decode($_GET['tr']))."'");
+		// $data=mysqli_fetch_array($HapusGambar);	
 		
-		unlink("../images/TeraTimbangan/".$data['FotoAction1']."");
-		unlink("../images/TeraTimbangan/thumb_".$data['FotoAction1']."");
-		unlink("../images/TeraTimbangan/".$data['FotoAction2']."");
-		unlink("../images/TeraTimbangan/thumb_".$data['FotoAction2']."");
-		unlink("../images/TeraTimbangan/".$data['FotoAction3']."");
-		unlink("../images/TeraTimbangan/thumb_".$data['FotoAction3']."");
+		// unlink("../images/TeraTimbangan/".$data['FotoAction1']."");
+		// unlink("../images/TeraTimbangan/thumb_".$data['FotoAction1']."");
+		// unlink("../images/TeraTimbangan/".$data['FotoAction2']."");
+		// unlink("../images/TeraTimbangan/thumb_".$data['FotoAction2']."");
+		// unlink("../images/TeraTimbangan/".$data['FotoAction3']."");
+		// unlink("../images/TeraTimbangan/thumb_".$data['FotoAction3']."");
+		$queryUpdate = "UPDATE tractiontimbangan SET TglTera=NULL, NoRefTera=NULL, KeteranganTera=NULL, IsDibayar=NULL, StatusTransaksi='PENERIMAAN' WHERE NoTransaksi=?";
+
+		$stmtUpdate = mysqli_prepare($koneksi, $queryUpdate);
+
+		mysqli_stmt_bind_param($stmtUpdate, "s", $decodedNoTransaksi);
+
+		$decodedNoTransaksi = htmlspecialchars(base64_decode(@$_GET['tr']));
+
+		mysqli_stmt_execute($stmtUpdate);
+
+		mysqli_stmt_close($stmtUpdate);
+
+		$querySelect = "SELECT FotoAction1, FotoAction2, FotoAction3 FROM trtimbanganitem WHERE NoTransaksi=?";
+		
+		$stmtSelect = mysqli_prepare($koneksi, $querySelect);
+		if (!$stmtSelect) {
+			die('Error in preparing the select statement: ' . mysqli_error($koneksi));
+		}
+
+		mysqli_stmt_bind_param($stmtSelect, "s", $decodedNoTransaksi);
+
+		mysqli_stmt_execute($stmtSelect);
+
+		mysqli_stmt_bind_result($stmtSelect, $fotoAction1, $fotoAction2, $fotoAction3);
+
+		mysqli_stmt_fetch($stmtSelect);
+
+		unlink("../images/TeraTimbangan/".$fotoAction1);
+		unlink("../images/TeraTimbangan/".$fotoAction2);
+		unlink("../images/TeraTimbangan/".$fotoAction3);
+
+		unlink("../images/TeraTimbangan/thumb_".$fotoAction1);
+		unlink("../images/TeraTimbangan/thumb_".$fotoAction2);
+		unlink("../images/TeraTimbangan/thumb_".$fotoAction3);
+
+		mysqli_stmt_close($stmtSelect);
 		
 		//update 
-		$edit = mysqli_query($koneksi,"UPDATE trtimbanganitem SET  FotoAction1=NULL, FotoAction2=NULL, FotoAction3=NULL, HasilAction1=NULL, HasilAction2=NULL, HasilAction3=NULL WHERE NoTransaksi='".htmlspecialchars(base64_decode(@$_GET['tr']))."'");
+		// $edit = mysqli_query($koneksi,"UPDATE trtimbanganitem SET  FotoAction1=NULL, FotoAction2=NULL, FotoAction3=NULL, HasilAction1=NULL, HasilAction2=NULL, HasilAction3=NULL WHERE NoTransaksi='".htmlspecialchars(base64_decode(@$_GET['tr']))."'");
+		$query = "UPDATE trtimbanganitem SET  FotoAction1=NULL, FotoAction2=NULL, FotoAction3=NULL, HasilAction1=NULL, HasilAction2=NULL, HasilAction3=NULL WHERE NoTransaksi=?";
+
+		$stmt = mysqli_prepare($koneksi, $query);
+
+		$noTransaksi = htmlspecialchars(base64_decode(@$_GET['tr']));
+		mysqli_stmt_bind_param($stmt, "s", $noTransaksi);
+
+		$edit = mysqli_stmt_execute($stmt);
+
+		mysqli_stmt_close($stmt);	
+
 		if($edit){
 			InsertLog($koneksi, 'Hapus Data', 'Menghapus Data Transaksi Penerimaan Timbangan', $login_id, base64_decode(@$_GET['tr']), 'Transaksi Proses Sidang Tera');
 			echo '<script language="javascript">document.location="TrSidangTera.php"; </script>';
@@ -419,19 +523,47 @@ if(@$_GET['id']!=null){
 	}
 	
 	if(base64_decode(@$_GET['aksi'])=='Hapus'){
-		$HapusGambar = mysqli_query($koneksi,"SELECT FotoAction1,FotoAction2,FotoAction3 FROM trtimbanganitem WHERE NoTransaksi='".htmlspecialchars(base64_decode($_GET['id']))."' and NoUrutTrans='".htmlspecialchars(base64_decode($_GET['nm']))."'");
-		$data=mysqli_fetch_array($HapusGambar);
+		// $HapusGambar = mysqli_query($koneksi,"SELECT FotoAction1,FotoAction2,FotoAction3 FROM trtimbanganitem WHERE NoTransaksi='".htmlspecialchars(base64_decode($_GET['id']))."' and NoUrutTrans='".htmlspecialchars(base64_decode($_GET['nm']))."'");
+		// $data=mysqli_fetch_array($HapusGambar);
 		
-		$query = mysqli_query($koneksi,"update trtimbanganitem set FotoAction1=NULL, FotoAction2=NULL, FotoAction3=NULL, HasilAction1=NULL, HasilAction2=NULL, HasilAction3=NULL  WHERE  NoTransaksi='".htmlspecialchars(base64_decode($_GET['id']))."' and NoUrutTrans='".htmlspecialchars(base64_decode($_GET['nm']))."'");
-		if($query){
+		// $query = mysqli_query($koneksi,"update trtimbanganitem set FotoAction1=NULL, FotoAction2=NULL, FotoAction3=NULL, HasilAction1=NULL, HasilAction2=NULL, HasilAction3=NULL  WHERE  NoTransaksi='".htmlspecialchars(base64_decode($_GET['id']))."' and NoUrutTrans='".htmlspecialchars(base64_decode($_GET['nm']))."'");
+		
+		$selectQuery = "SELECT FotoAction1, FotoAction2, FotoAction3 FROM trtimbanganitem WHERE NoTransaksi = ? AND NoUrutTrans = ?";
+		$selectStmt = mysqli_prepare($koneksi, $selectQuery);
+
+		$id = htmlspecialchars(base64_decode($_GET['id']));
+		$nm = htmlspecialchars(base64_decode($_GET['nm']));
+		mysqli_stmt_bind_param($selectStmt, "ss", $id, $nm);
+
+		mysqli_stmt_execute($selectStmt);
+
+		$result = mysqli_stmt_get_result($selectStmt);
+
+		mysqli_stmt_bind_result($selectStmt, $fotoAction1, $fotoAction2, $fotoAction3);
+
+		$data = mysqli_fetch_array($result);
+
+		mysqli_stmt_close($selectStmt);
+
+		$updateQuery = "UPDATE trtimbanganitem SET FotoAction1=NULL, FotoAction2=NULL, FotoAction3=NULL, HasilAction1=NULL, HasilAction2=NULL, HasilAction3=NULL WHERE NoTransaksi = ? AND NoUrutTrans = ?";
+		$updateStmt = mysqli_prepare($koneksi, $updateQuery);
+
+		mysqli_stmt_bind_param($updateStmt, "ss", $id, $nm);
+
+		$cek = mysqli_stmt_execute($updateStmt);
+
+		mysqli_stmt_close($updateStmt);
+		
+		if($cek){
 			//hapus gambar terlebih dahulu
-		
-			unlink("../images/TeraTimbangan/".$data['FotoAction1']."");
-			unlink("../images/TeraTimbangan/thumb_".$data['FotoAction1']."");
-			unlink("../images/TeraTimbangan/".$data['FotoAction2']."");
-			unlink("../images/TeraTimbangan/thumb_".$data['FotoAction2']."");
-			unlink("../images/TeraTimbangan/".$data['FotoAction3']."");
-			unlink("../images/TeraTimbangan/thumb_".$data['FotoAction3']."");
+			unlink("../images/TeraTimbangan/".$fotoAction1);
+			unlink("../images/TeraTimbangan/".$fotoAction2);
+			unlink("../images/TeraTimbangan/".$fotoAction3);
+			//hapus gambar terlebih dahulu
+			unlink("../images/TeraTimbangan/thumb_".$fotoAction1);
+			unlink("../images/TeraTimbangan/thumb_".$fotoAction2);
+			unlink("../images/TeraTimbangan/thumb_".$fotoAction3);
+
 			
 			InsertLog($koneksi, 'Hapus Data', 'Menghapus Hasil Sidang Tera Timbangan ', $login_id, base64_decode(@$_GET['id']), 'Transaksi Proses Sidang Tera');
 				
@@ -453,8 +585,15 @@ if(@$_GET['id']!=null){
 	//Simpan Edit Item Timbangan
 	if(isset($_POST['SimpanEdit'])){
 		//update 
-		$query = mysqli_query($koneksi,"UPDATE trtimbanganitem SET HasilAction1='$HasilAction1', HasilAction2='$HasilAction2', HasilAction3='$HasilAction3' WHERE NoTransaksi='$NoTransaksi' and NoUrutTrans='$NoUrutTrans'");
-		if ($query){
+		// $query = mysqli_query($koneksi,"UPDATE trtimbanganitem SET HasilAction1='$HasilAction1', HasilAction2='$HasilAction2', HasilAction3='$HasilAction3' WHERE NoTransaksi='$NoTransaksi' and NoUrutTrans='$NoUrutTrans'");
+		$query = "UPDATE trtimbanganitem SET HasilAction1=?, HasilAction2=?, HasilAction3=? WHERE NoTransaksi=? AND NoUrutTrans=?";
+		$stmt = mysqli_prepare($koneksi, $query);
+
+		// Bind parameters to the prepared statement
+		mysqli_stmt_bind_param($stmt, "ssssi", $HasilAction1, $HasilAction2, $HasilAction3, $NoTransaksi, $NoUrutTrans);
+
+		
+		if (mysqli_stmt_execute($stmt)){
 			InsertLog($koneksi, 'Edit Data', 'Mengubah Transaksi Hasil Sidang Tera ', $login_id, $NoTransaksi, 'Transaksi Proses Sidang Tera');
 			echo '<script language="javascript">document.location="TrSidangTera.php?NoTransaksi='.$NoTransaksi.'";</script>';
 		}else{
@@ -469,6 +608,7 @@ if(@$_GET['id']!=null){
 			  });
 			  </script>';
 		}
+		mysqli_stmt_close($stmt);
 	}
 	
 	?>
