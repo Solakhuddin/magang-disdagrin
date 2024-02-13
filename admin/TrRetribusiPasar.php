@@ -10,9 +10,36 @@ $Tanggal = date('Ymd');
 if(@$_GET['id']!=null){
 	$Sebutan = 'Data Penerimaan Timbangan';	
 	$Readonly = 'readonly';
+	$decoded_id = base64_decode($_GET['id']);
 	
-	@$Edit = mysqli_query($koneksi,"SELECT a.NamaPerson,b.IDPerson,b.NoTransaksi,c.IDTimbangan,b.TglTransaksi,b.NoSKRD FROM mstperson a join tractiontimbangan b on a.IDPerson=b.IDPerson left join trtimbanganitem c on b.NoTransaksi=c.NoTransaksi WHERE b.NoTransaksi='".base64_decode($_GET['id'])."'");
-	@$RowData = mysqli_fetch_assoc($Edit);
+	// @$Edit = mysqli_query($koneksi,"SELECT a.NamaPerson,b.IDPerson,b.NoTransaksi,c.IDTimbangan,b.TglTransaksi,b.NoSKRD FROM mstperson a join tractiontimbangan b on a.IDPerson=b.IDPerson left join trtimbanganitem c on b.NoTransaksi=c.NoTransaksi WHERE b.NoTransaksi='".base64_decode($_GET['id'])."'");
+	// @$RowData = mysqli_fetch_assoc($Edit);
+	$sql = "SELECT a.NamaPerson, b.IDPerson, b.NoTransaksi, c.IDTimbangan, b.TglTransaksi, b.NoSKRD 
+        FROM mstperson a 
+        JOIN tractiontimbangan b ON a.IDPerson = b.IDPerson 
+        LEFT JOIN trtimbanganitem c ON b.NoTransaksi = c.NoTransaksi 
+        WHERE b.NoTransaksi = ?";
+
+	$stmt = mysqli_prepare($koneksi, $sql);
+
+	mysqli_stmt_bind_param($stmt, "s", $decoded_id);
+
+	mysqli_stmt_execute($stmt);
+
+	mysqli_stmt_bind_result($stmt, $namaPerson, $IDPerson, $NoTransaksi, $IDTimbangan, $TglTransaksi, $NoSKRD);
+
+	mysqli_stmt_fetch($stmt);
+
+	$RowData = [
+		'NamaPerson' => $namaPerson,
+		'IDPerson' => $IDPerson,
+		'NoTransaksi' => $NoTransaksi,
+		'IDTimbangan' => $IDTimbangan,
+		'TglTransaksi' => $TglTransaksi,
+		'NoSKRD' => $NoSKRD
+	];
+
+	mysqli_stmt_close($stmt);
 }else{
 	$Sebutan = 'Entry Transaksi';	
 }
@@ -311,8 +338,29 @@ if(@$_GET['id']!=null){
                             </thead>
                             <tbody><!-- -->
                                 <?php
-                                $query = mysqli_query($koneksi,"SELECT * FROM mstperson WHERE  IsPerusahaan = '0'  and UserName != 'dinas' and JenisPerson LIKE '%Pedagang%' AND IsVerified=b'1'  ORDER BY NamaPerson ASC");
-                                while ($data = mysqli_fetch_array($query)) {
+                                // $query = mysqli_query($koneksi,"SELECT * FROM mstperson WHERE  IsPerusahaan = '0'  and UserName != 'dinas' and JenisPerson LIKE '%Pedagang%' AND IsVerified=b'1'  ORDER BY NamaPerson ASC");
+                                // while ($data = mysqli_fetch_array($query)) {
+								$param1 = '%Pedagang%';
+								$param2 = 1;
+
+								$query = "SELECT * FROM mstperson WHERE IsPerusahaan = '0' AND UserName != 'dinas' AND JenisPerson LIKE ? AND IsVerified = ?";
+								$stmt = mysqli_prepare($koneksi, $query);
+
+								mysqli_stmt_bind_param($stmt, "si", $param1, $param2);
+								mysqli_stmt_execute($stmt);
+								mysqli_stmt_bind_result($stmt, $IDPerson, $NamaPerson, $NIK, $AlamatLengkapPerson, $IsVerified);
+								
+								mysqli_stmt_fetch($stmt);
+
+								$data = [
+									"IDPerson" => $IDPerson, 
+									"NamaPerson" => $NamaPerson, 
+									"NIK" => $NIK, 
+									"AlamatLengkapPerson" => $AlamatLengkapPerson, 
+									"IsVerified" => $IsVerified
+								];
+
+								while (mysqli_stmt_fetch($stmt)) {
                                 ?>
                                     <tr id="pilih" data-nim="<?php echo $data['IDPerson']; ?>" data-nama="<?php echo $data['NamaPerson']; ?>">
                                         <td><?php echo $data['NamaPerson']; ?></td>
@@ -321,6 +369,7 @@ if(@$_GET['id']!=null){
                                     </tr>
                                     <?php
                                 }
+								mysqli_stmt_close($stmt);
                                 ?>
                             </tbody>
                         </table>  
@@ -451,18 +500,34 @@ if(@$_GET['id']!=null){
 		echo $TglSampaiDibayar."<br>";
 		
 		$tahun = date('Y');
-		$sql = "SELECT RIGHT(NoTransRet,7) AS kode FROM trretribusipasar WHERE NoTransRet LIKE '%$tahun%' ORDER BY NoTransRet DESC LIMIT 1";
-		$res = mysqli_query($koneksi, $sql);
-		if(mysqli_num_rows($res) > 0){
-			$result = mysqli_fetch_array($res);
-			if ($result['kode'] == null) {
-				$kode = 1;
-			} else {
-				$kode = ++$result['kode'];
-			}	
-		}else{
+		// $sql = "SELECT RIGHT(NoTransRet,7) AS kode FROM trretribusipasar WHERE NoTransRet LIKE '%$tahun%' ORDER BY NoTransRet DESC LIMIT 1";
+		// $res = mysqli_query($koneksi, $sql);
+		// if(mysqli_num_rows($res) > 0){
+		// 	$result = mysqli_fetch_array($res);
+		// 	if ($result['kode'] == null) {
+		// 		$kode = 1;
+		// 	} else {
+		// 		$kode = ++$result['kode'];
+		// 	}	
+		// }else{
+		// 	$kode = 1;
+		// }
+
+		$sql = "SELECT RIGHT(NoTransRet, 7) AS kode FROM trretribusipasar WHERE NoTransRet LIKE CONCAT('%', ?, '%') ORDER BY NoTransRet DESC LIMIT 1";
+		$stmt = mysqli_prepare($koneksi, $sql);	
+
+		$tahun = 'your_tahun_value'; 
+		mysqli_stmt_bind_param($stmt, "s", $tahun);
+		mysqli_stmt_execute($stmt);
+		mysqli_stmt_bind_result($stmt, $kode);
+
+		if (mysqli_stmt_fetch($stmt)) {
+			$kode = ($kode == null) ? 1 : ++$kode;
+		} else {
 			$kode = 1;
 		}
+
+		mysqli_stmt_close($stmt);
 		
 		$bikin_kode = str_pad($kode, 7, "0", STR_PAD_LEFT);
 		$kode_jadi  = 'TRP-' . $tahun . '-' . $bikin_kode ;
@@ -472,24 +537,31 @@ if(@$_GET['id']!=null){
 		// "INSERT INTO trretribusipasar (NoTransRet,TanggalTrans,JmlHariDibayar,TglMulaiDibayar,TglSampaiDibayar,NominalRetribusi,NominalDiterima,IsTransfer,Keterangan,IDPerson,KodePasar,UserName,IDLapak) VALUES ('$kode_jadi', '2019-11-22', '$JmlHariDibayar', '$TglMulaiDibayar', '$TglSampaiDibayar', '$Retribusi', '$NominalRetribusi', '$IsTransfer', '$Keterangan', '$IDPerson', '$KodePasar', '$login_id', '$IDLapak')"); 
 		
 		
-		$SimpanData = @mysqli_query($koneksi, 
-		"INSERT INTO trretribusipasar (NoTransRet,TanggalTrans,JmlHariDibayar,TglMulaiDibayar,TglSampaiDibayar,NominalRetribusi,NominalDiterima,IsTransfer,Keterangan,IDPerson,KodePasar,UserName,IDLapak) VALUES ('$kode_jadi', NOW(), '$JmlHariDibayar','$TglMulaiDibayar','$TglSampaiDibayar','$Retribusi','$NominalRetribusi','$IsTransfer','$Keterangan','$IDPerson','$KodePasar','$login_id','$IDLapak')"); 
-				
-		if ($SimpanData){
+		// $SimpanData = @mysqli_query($koneksi, "INSERT INTO trretribusipasar (NoTransRet,TanggalTrans,JmlHariDibayar,TglMulaiDibayar,TglSampaiDibayar,NominalRetribusi,NominalDiterima,IsTransfer,Keterangan,IDPerson,KodePasar,UserName,IDLapak) VALUES ('$kode_jadi', NOW(), '$JmlHariDibayar','$TglMulaiDibayar','$TglSampaiDibayar','$Retribusi','$NominalRetribusi','$IsTransfer','$Keterangan','$IDPerson','$KodePasar','$login_id','$IDLapak')"); 
+		$query = "INSERT INTO trretribusipasar (NoTransRet, TanggalTrans, JmlHariDibayar, TglMulaiDibayar, TglSampaiDibayar, NominalRetribusi, NominalDiterima, IsTransfer, Keterangan, IDPerson, KodePasar, UserName, IDLapak) VALUES (?, NOW(), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+
+		$stmt = mysqli_prepare($koneksi, $query);
+
+		mysqli_stmt_bind_param($stmt, "sissiiissssss", $kode_jadi, $JmlHariDibayar, $TglMulaiDibayar, $TglSampaiDibayar, $Retribusi, $NominalRetribusi, $IsTransfer, $Keterangan, $IDPerson, $KodePasar, $login_id, $IDLapak);
+		
+		$success = mysqli_stmt_execute($stmt);
+
+		if ($success){
 			InsertLog($koneksi, 'Tambah Data', 'Menambah Transaksi Retribusi Pasar', $login_id, $kode_jadi, 'Transaksi Retribusi Pasar');
 			echo '<script language="javascript">document.location="TrRetribusiPasar.php";</script>';
 		}else{
 			echo '<script type="text/javascript">
-			  sweetAlert({
+			sweetAlert({
 				title: "Simpan Data Gagal!",
 				text: " ",
 				type: "error"
-			  },
-			  function () {
+			},
+			function () {
 				window.location.href = "TrRetribusiPasar.php";
-			  });
-			  </script>';
+			});
+			</script>';
 		}
+		mysqli_stmt_close($stmt);
 	}
 	
 	
@@ -526,8 +598,18 @@ if(@$_GET['id']!=null){
 	//Hapus Transaksi Penerimaan
 	if(base64_decode(@$_GET['aksi'])=='HapusTransaksi'){
 		
-		$query = mysqli_query($koneksi,"delete from trretribusipasar WHERE NoTransRet='".htmlspecialchars(base64_decode($_GET['tr']))."' ");
-		if($query){
+		// $query = mysqli_query($koneksi,"delete from trretribusipasar WHERE NoTransRet='".htmlspecialchars(base64_decode($_GET['tr']))."' ");
+		$query = "DELETE FROM trretribusipasar WHERE NoTransRet = ?";
+
+		$stmt = mysqli_prepare($koneksi, $query);
+
+		mysqli_stmt_bind_param($stmt, "s", $noTransRet);
+
+		$noTransRet = htmlspecialchars(base64_decode($_GET['tr']));
+
+		$success = mysqli_stmt_execute($stmt);
+
+		if ($success) {
 			InsertLog($koneksi, 'Hapus Data', 'Menghapus Data Transaksi Retribusi Pasar', $login_id, base64_decode(@$_GET['tr']), 'Transaksi Retribusi Pasar');
 			echo '<script language="javascript">document.location="TrRetribusiPasar.php"; </script>';
 		}else{
