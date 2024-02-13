@@ -15,9 +15,28 @@ $pesan = isset($_GET['psn']) ? base64_decode($_GET['psn']) : (isset($_POST['Kode
 if(@$_GET['id']!=null){
 	$Sebutan = 'Data Penerimaan Timbangan';	
 	$Readonly = 'readonly';
+	$decoded_id = htmlspecialchars(base64_decode($_GET['id']));
 	
-	@$Edit = mysqli_query($koneksi,"SELECT a.NamaPerson,b.IDPerson,b.NoTransaksi,c.IDTimbangan,b.TglTransaksi,b.NoSKRD FROM mstperson a join tractiontimbangan b on a.IDPerson=b.IDPerson left join trtimbanganitem c on b.NoTransaksi=c.NoTransaksi WHERE b.NoTransaksi='".htmlspecialchars(base64_decode($_GET['id']))."'");
-	@$RowData = mysqli_fetch_assoc($Edit);
+	// @$Edit = mysqli_query($koneksi,"SELECT a.NamaPerson,b.IDPerson,b.NoTransaksi,c.IDTimbangan,b.TglTransaksi,b.NoSKRD FROM mstperson a join tractiontimbangan b on a.IDPerson=b.IDPerson left join trtimbanganitem c on b.NoTransaksi=c.NoTransaksi WHERE b.NoTransaksi='".htmlspecialchars(base64_decode($_GET['id']))."'");
+	// @$RowData = mysqli_fetch_assoc($Edit);
+
+	$query = "SELECT a.NamaPerson, b.IDPerson, b.NoTransaksi, c.IDTimbangan, b.TglTransaksi, b.NoSKRD 
+			FROM mstperson a 
+			JOIN tractiontimbangan b ON a.IDPerson = b.IDPerson 
+			LEFT JOIN trtimbanganitem c ON b.NoTransaksi = c.NoTransaksi 
+			WHERE b.NoTransaksi = ?";
+	$stmt = mysqli_prepare($koneksi, $query);
+
+	mysqli_stmt_bind_param($stmt, "s", $decoded_id);
+
+	mysqli_stmt_execute($stmt);
+
+	$result = mysqli_stmt_get_result($stmt);
+
+	$RowData = mysqli_fetch_assoc($result);
+
+	mysqli_stmt_close($stmt);
+
 }else{
 	$Sebutan = 'Entry Transaksi';	
 }
@@ -100,14 +119,32 @@ if(@$_GET['id']!=null){
 													<div class="col-lg-11 form-group input-group offset-lg-1">
 														<select name="KodeBJ" class="form-control" required>	
 															<?php
-															$menu = mysqli_query($koneksi,"SELECT * FROM mstpasar WHERE KodeBJ<>''");
-															while($kode = mysqli_fetch_array($menu)){
-																if($kode['KodeBJ']==@$_REQUEST['KodeBJ']){
-																	echo "<option value=\"".$kode['KodeBJ']."\" selected >".$kode['NamaPasar']."</option>\n";
-																}else{
-																	echo "<option value=\"".$kode['KodeBJ']."\" >".$kode['NamaPasar']."</option>\n";
+															// $menu = mysqli_query($koneksi,"SELECT * FROM mstpasar WHERE KodeBJ<>''");
+															// while($kode = mysqli_fetch_array($menu)){
+															// 	if($kode['KodeBJ']==@$_REQUEST['KodeBJ']){
+															// 		echo "<option value=\"".$kode['KodeBJ']."\" selected >".$kode['NamaPasar']."</option>\n";
+															// 	}else{
+															// 		echo "<option value=\"".$kode['KodeBJ']."\" >".$kode['NamaPasar']."</option>\n";
+															// 	}
+															// }
+															$query = "SELECT * FROM mstpasar WHERE KodeBJ <> ?";
+															$stmt = mysqli_prepare($koneksi, $query);
+
+															mysqli_stmt_bind_param($stmt, "s", $kodeBJ_param);
+
+															mysqli_stmt_execute($stmt);
+
+															$result = mysqli_stmt_get_result($stmt);
+
+															while ($kode = mysqli_fetch_array($result)) {
+																if ($kode['KodeBJ'] == $_REQUEST['KodeBJ']) {
+																	echo "<option value=\"" . $kode['KodeBJ'] . "\" selected>" . $kode['NamaPasar'] . "</option>\n";
+																} else {
+																	echo "<option value=\"" . $kode['KodeBJ'] . "\">" . $kode['NamaPasar'] . "</option>\n";
 																}
 															}
+
+															mysqli_stmt_close($stmt);
 															?>
 														</select>&nbsp;&nbsp;
 														<input type="text" name="Tanggal1" class="form-control" id="time1" value="<?php echo @$_REQUEST['Tanggal1']; ?>" placeholder="Tanggal Transaksi" required>&nbsp;&nbsp;
@@ -297,8 +334,24 @@ if(@$_GET['id']!=null){
 					</thead>
 					<tbody>
 						<?php
-						$query = mysqli_query($koneksi,"SELECT * FROM mstperson WHERE  IsPerusahaan = '0'  and UserName != 'dinas' and JenisPerson LIKE '%Pedagang%' AND IsVerified=b'1'  ORDER BY NamaPerson ASC");
-						while ($data = mysqli_fetch_array($query)) {
+						// $query = mysqli_query($koneksi,"SELECT * FROM mstperson WHERE  IsPerusahaan = '0'  and UserName != 'dinas' and JenisPerson LIKE '%Pedagang%' AND IsVerified=b'1'  ORDER BY NamaPerson ASC");
+						// while ($data = mysqli_fetch_array($query)) {
+							
+						$isPerusahaan = 0; 
+						$userName = 'dinas';
+						$jenisPerson = '%Pedagang%';
+						$isVerified = 1; 
+
+						$query = "SELECT * FROM mstperson WHERE IsPerusahaan = ? AND UserName != ? AND JenisPerson LIKE ? AND IsVerified = ? ORDER BY NamaPerson ASC";
+						$stmt = mysqli_prepare($koneksi, $query);
+
+						mysqli_stmt_bind_param($stmt, "issi", $isPerusahaan, $userName, $jenisPerson, $isVerified);
+
+						mysqli_stmt_execute($stmt);
+
+						$result = mysqli_stmt_get_result($stmt);
+
+						while ($data = mysqli_fetch_array($result)) {
 							?>
 							<tr id="pilih" data-nim="<?php echo $data['IDPerson']; ?>" data-nama="<?php echo $data['NamaPerson']; ?>">
 								<td><?php echo $data['NamaPerson']; ?></td>
@@ -435,27 +488,58 @@ if(isset($_POST['Simpan'])){
 	// echo $TglSampaiDibayar."<br>";
 
 	$tahun = date('Ymd');
-	$sql = "SELECT RIGHT(NoTransRet,7) AS kode FROM trretribusipasar WHERE NoTransRet LIKE '%$tahun%' ORDER BY NoTransRet DESC LIMIT 1";
-	$res = mysqli_query($koneksi, $sql);
-	if(mysqli_num_rows($res) > 0){
-		$result = mysqli_fetch_array($res);
-		if ($result['kode'] == null) {
+	$sql = "SELECT RIGHT(NoTransRet, 7) AS kode FROM trretribusipasar WHERE NoTransRet LIKE CONCAT('%', ?, '%') ORDER BY NoTransRet DESC LIMIT 1";
+	$stmt = mysqli_prepare($koneksi, $sql);
+
+	$tahun = 'your_tahun_value_here';
+
+	mysqli_stmt_bind_param($stmt, "s", $tahun);
+
+	mysqli_stmt_execute($stmt);
+
+	$result = mysqli_stmt_get_result($stmt);
+
+	if (mysqli_num_rows($result) > 0) {
+		$row = mysqli_fetch_array($result);
+		if ($row['kode'] == null) {
 			$kode = 1;
 		} else {
-			$kode = ++$result['kode'];
-		}	
-	}else{
+			$kode = ++$row['kode'];
+		}
+	} else {
 		$kode = 1;
 	}
+
+	mysqli_stmt_close($stmt);
+
+	// $sql = "SELECT RIGHT(NoTransRet,7) AS kode FROM trretribusipasar WHERE NoTransRet LIKE '%$tahun%' ORDER BY NoTransRet DESC LIMIT 1";
+	// $res = mysqli_query($koneksi, $sql);
+	// if(mysqli_num_rows($res) > 0){
+	// 	$result = mysqli_fetch_array($res);
+	// 	if ($result['kode'] == null) {
+	// 		$kode = 1;
+	// 	} else {
+	// 		$kode = ++$result['kode'];
+	// 	}	
+	// }else{
+	// 	$kode = 1;
+	// }
 
 	$bikin_kode = str_pad($kode, 7, "0", STR_PAD_LEFT);
 	$kode_jadi  = 'TRP-' . $tahun . '-' . $bikin_kode ;
 	// echo $IsTransfer;
 
-	$SimpanData = @mysqli_query($koneksi, 
-		"INSERT INTO trretribusipasar (NoTransRet,TanggalTrans,JmlHariDibayar,TglMulaiDibayar,TglSampaiDibayar,NominalRetribusi,NominalDiterima,IsTransfer,Keterangan,IDPerson,KodePasar,UserName,IDLapak) VALUES ('$kode_jadi', NOW(), '$JmlHariDibayar','$TglMulaiDibayar','$TglSampaiDibayar','$Retribusi','$NominalRetribusi','$IsTransfer','$Keterangan','$IDPerson','$KodePasar','$login_id','$IDLapak')"); 
+	// $SimpanData = @mysqli_query($koneksi, "INSERT INTO trretribusipasar (NoTransRet,TanggalTrans,JmlHariDibayar,TglMulaiDibayar,TglSampaiDibayar,NominalRetribusi,NominalDiterima,IsTransfer,Keterangan,IDPerson,KodePasar,UserName,IDLapak) VALUES ('$kode_jadi', NOW(), '$JmlHariDibayar','$TglMulaiDibayar','$TglSampaiDibayar','$Retribusi','$NominalRetribusi','$IsTransfer','$Keterangan','$IDPerson','$KodePasar','$login_id','$IDLapak')"); 
+	
+	$sql = "INSERT INTO trretribusipasar (NoTransRet, TanggalTrans, JmlHariDibayar, TglMulaiDibayar, TglSampaiDibayar, NominalRetribusi, NominalDiterima, IsTransfer, Keterangan, IDPerson, KodePasar, UserName, IDLapak) VALUES (?, NOW(), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
-	if ($SimpanData){
+	$stmt = mysqli_prepare($koneksi, $sql);
+
+	mysqli_stmt_bind_param($stmt, "sissiissssssi", $kode_jadi, $JmlHariDibayar, $TglMulaiDibayar, $TglSampaiDibayar, $Retribusi, $NominalRetribusi, $IsTransfer, $Keterangan, $IDPerson, $KodePasar, $login_id, $IDLapak);
+
+	mysqli_stmt_execute($stmt);
+
+	if ($stmt){
 		InsertLog($koneksi, 'Tambah Data', 'Menambah Transaksi Retribusi Pasar', $login_id, $kode_jadi, 'Transaksi Retribusi Pasar');
 		echo '<script language="javascript">document.location="TrRetribusiPasar.php";</script>';
 	}else{
@@ -469,28 +553,39 @@ if(isset($_POST['Simpan'])){
 				window.location.href = "TrRetribusiPasar.php";
 				});
 				</script>';
-			}
 		}
-		if(base64_decode(@$_GET['aksi'])=='HapusTransaksi'){
+	}
+	mysqli_stmt_close($stmt);
 
-			$query = mysqli_query($koneksi,"delete from trretribusipasar WHERE NoTransRet='".htmlspecialchars(base64_decode($_GET['tr']))."' ");
-			if($query){
-				InsertLog($koneksi, 'Hapus Data', 'Menghapus Data Transaksi Retribusi Pasar', $login_id, base64_decode(@$_GET['tr']), 'Transaksi Retribusi Pasar');
-				echo '<script language="javascript">document.location="TrRetribusiPasar.php"; </script>';
-			}else{
-				echo '<script type="text/javascript">
-				sweetAlert({
-					title: "Hapus Data Gagal!",
-					text: " Data Telah Digunakan Dalam Berbagai Transaksi ",
-					type: "error"
-					},
-					function () {
-						window.location.href = "TrRetribusiPasar.php";
-						});
-						</script>';
-					}
-				}
+	if(base64_decode(@$_GET['aksi'])=='HapusTransaksi'){
+		$decoded_tr = base64_decode($_GET['tr']);
 
-				?>
-			</body>
-			</html>
+		// $query = mysqli_query($koneksi,"delete from trretribusipasar WHERE NoTransRet='".htmlspecialchars(base64_decode($_GET['tr']))."' ");
+		$sql = "DELETE FROM trretribusipasar WHERE NoTransRet = ?";
+
+		$stmt = mysqli_prepare($koneksi, $sql);
+
+		mysqli_stmt_bind_param($stmt, "s", $decoded_tr);
+
+		mysqli_stmt_execute($stmt);
+
+		if($stmt){
+			InsertLog($koneksi, 'Hapus Data', 'Menghapus Data Transaksi Retribusi Pasar', $login_id, base64_decode(@$_GET['tr']), 'Transaksi Retribusi Pasar');
+			echo '<script language="javascript">document.location="TrRetribusiPasar.php"; </script>';
+		}else{
+			echo '<script type="text/javascript">
+			sweetAlert({
+				title: "Hapus Data Gagal!",
+				text: " Data Telah Digunakan Dalam Berbagai Transaksi ",
+				type: "error"
+			},
+			function () {
+				window.location.href = "TrRetribusiPasar.php";
+			});
+			</script>';
+		}
+		mysqli_stmt_close($stmt);
+	}
+		?>
+</body>
+</html>
