@@ -72,14 +72,31 @@ $Page = 'TimbanganDinas';
 								  </thead>
 								  <tbody>
 								  	<?php
-								  		$sql = "SELECT a.HasilAction1,a.NoTransaksi,a.TanggalTransaksi,b.NamaTimbangan,a.UserName
-												FROM trtimbanganitem a
-												JOIN timbanganperson b on (a.IDTimbangan,a.IDPerson)=(b.IDTimbangan,b.IDPerson)
-												where a.IDTimbangan='".htmlspecialchars(base64_decode($_GET['id']))."'
-												ORDER by a.TanggalTransaksi DESC";
-										$conn = mysqli_query($koneksi, $sql);
-										$no = 0;	
-										while($row=mysqli_fetch_assoc($conn)){
+								  	// $sql = "SELECT a.HasilAction1,a.NoTransaksi,a.TanggalTransaksi,b.NamaTimbangan,a.UserName
+										// 		FROM trtimbanganitem a
+										// 		JOIN timbanganperson b on (a.IDTimbangan,a.IDPerson)=(b.IDTimbangan,b.IDPerson)
+										// 		where a.IDTimbangan='".htmlspecialchars(base64_decode($_GET['id']))."'
+										// 		ORDER by a.TanggalTransaksi DESC";
+										// $conn = mysqli_query($koneksi, $sql);
+										// $no = 0;	
+										// while($row=mysqli_fetch_assoc($conn)){
+                    $id = base64_decode($_GET['id']);
+
+                    $sql = "SELECT a.HasilAction1, a.NoTransaksi, a.TanggalTransaksi, b.NamaTimbangan, a.UserName
+                            FROM trtimbanganitem a
+                            JOIN timbanganperson b ON (a.IDTimbangan, a.IDPerson) = (b.IDTimbangan, b.IDPerson)
+                            WHERE a.IDTimbangan = ?
+                            ORDER BY a.TanggalTransaksi DESC";
+
+                    $stmt = mysqli_prepare($koneksi, $sql);
+
+                    mysqli_stmt_bind_param($stmt, "s", $id);
+                    mysqli_stmt_execute($stmt);
+                    $result = mysqli_stmt_get_result($stmt);
+
+                    $no = 0;
+
+                    while ($row = mysqli_fetch_assoc($result)) {
 											echo '<tr>';
 												echo '<td>'.++$no.'</td>';
 												echo '<td>'.$row['NamaTimbangan'].'</td>';
@@ -89,7 +106,7 @@ $Page = 'TimbanganDinas';
 												echo '<td>'.$row['UserName'].'</td>';
 											echo '</tr>';
 										}		
-
+                    mysqli_stmt_close($stmt);
 								  	?>
 										
 								  </tbody>
