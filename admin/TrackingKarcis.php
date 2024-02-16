@@ -106,24 +106,53 @@ $Tahun=date('Y');
 										include '../library/pagination1.php';
 										// mengatur variabel reload dan sql
 										$reload = "TrackingKarcis.php?pagination=true&view=0";
-										$sql =  "SELECT t.NoTransArusKB, t.TanggalTransaksi, t.KodeBatchPencetakan, t.TotalNilaKB, t.UserName, i.JumlahDebetKB, i.TotalNominal, i.NoSeriAwal, i.NoSeriAkhir, i.KodeBatch, i.Keterangan, m.NamaKB
-											FROM traruskb t
-											JOIN traruskbitem i ON t.NoTransArusKB=i.NoTransArusKB
-											JOIN mstkertasberharga m ON i.KodeKB = m.KodeKB
-											WHERE t.TipeTransaksi='PENCETAKAN'";
+										// $sql =  "SELECT t.NoTransArusKB, t.TanggalTransaksi, t.KodeBatchPencetakan, t.TotalNilaKB, t.UserName, i.JumlahDebetKB, i.TotalNominal, i.NoSeriAwal, i.NoSeriAkhir, i.KodeBatch, i.Keterangan, m.NamaKB
+										// 	FROM traruskb t
+										// 	JOIN traruskbitem i ON t.NoTransArusKB=i.NoTransArusKB
+										// 	JOIN mstkertasberharga m ON i.KodeKB = m.KodeKB
+										// 	WHERE t.TipeTransaksi='PENCETAKAN'";
 										
-										if(@$_REQUEST['keyword']!=null){
-											$sql .= " AND t.TanggalTransaksi LIKE '%".$_REQUEST['keyword']."%'  ";
+										// if(@$_REQUEST['keyword']!=null){
+										// 	$sql .= " AND t.TanggalTransaksi LIKE '%".$_REQUEST['keyword']."%'  ";
+										// }
+										
+										// $sql .=" ORDER BY t.TanggalTransaksi ASC";
+										// $result = mysqli_query($koneksi,$sql);
+										
+										// @$tcount = mysqli_num_rows($result);
+										$sql = "SELECT t.NoTransArusKB, t.TanggalTransaksi, t.KodeBatchPencetakan, t.TotalNilaKB, t.UserName, i.JumlahDebetKB, i.TotalNominal, i.NoSeriAwal, i.NoSeriAkhir, i.KodeBatch, i.Keterangan, m.NamaKB
+												FROM traruskb t
+												JOIN traruskbitem i ON t.NoTransArusKB = i.NoTransArusKB
+												JOIN mstkertasberharga m ON i.KodeKB = m.KodeKB
+												WHERE t.TipeTransaksi = 'PENCETAKAN'";
+
+										if(isset($_REQUEST['keyword']) && !empty($_REQUEST['keyword'])) {
+											$keyword = "%" . $_REQUEST['keyword'] . "%";
+											$sql .= " AND t.TanggalTransaksi LIKE ?";
 										}
-										
-										$sql .=" ORDER BY t.TanggalTransaksi ASC";
-										$result = mysqli_query($koneksi,$sql);
-										
+
+										$sql .= " ORDER BY t.TanggalTransaksi ASC";
+
+										$stmt = mysqli_prepare($koneksi, $sql);
+
+										if(isset($_REQUEST['keyword']) && !empty($_REQUEST['keyword'])) {
+											mysqli_stmt_bind_param($stmt, "s", $keyword);
+										}
+
+										mysqli_stmt_execute($stmt);
+
+										$result = mysqli_stmt_get_result($stmt);
+
+										$tcount = mysqli_num_rows($result);
+
+										mysqli_stmt_free_result($stmt);
+
+										mysqli_stmt_close($stmt);
+
 										//pagination config start
 										$rpp = 15; // jumlah record per halaman
 										$page = intval(@$_GET["page"]);
 										if($page<=0) $page = 1;  
-										@$tcount = mysqli_num_rows($result);
 										$tpages = ($tcount) ? ceil($tcount/$rpp) : 1; // total pages, last page number
 										$count = 0;
 										$i = ($page-1)*$rpp;
@@ -205,25 +234,51 @@ $Tahun=date('Y');
 										<?php
 										// mengatur variabel reload dan sql
 										$reload = "TrackingKarcis.php?pagination=true&view=1";
-										$sql =  "SELECT t.NoTransArusKB, t.TanggalTransaksi, t.KodeBatchPencetakan, t.TotalNilaKB, t.UserName, i.JumlahKreditKB, i.TotalNominal, i.NoSeriAwal, i.NoSeriAkhir, i.KodeBatch, i.Keterangan, m.NamaKB, p.NamaPasar
-											FROM traruskb t
-											JOIN traruskbitem i ON t.NoTransArusKB=i.NoTransArusKB
-											JOIN mstkertasberharga m ON i.KodeKB = m.KodeKB
-											JOIN mstpasar p ON t.KodePasar=p.KodePasar
-											WHERE t.TipeTransaksi='PENGIRIMAN'";
+										// $sql =  "SELECT t.NoTransArusKB, t.TanggalTransaksi, t.KodeBatchPencetakan, t.TotalNilaKB, t.UserName, i.JumlahKreditKB, i.TotalNominal, i.NoSeriAwal, i.NoSeriAkhir, i.KodeBatch, i.Keterangan, m.NamaKB, p.NamaPasar
+										// 	FROM traruskb t
+										// 	JOIN traruskbitem i ON t.NoTransArusKB=i.NoTransArusKB
+										// 	JOIN mstkertasberharga m ON i.KodeKB = m.KodeKB
+										// 	JOIN mstpasar p ON t.KodePasar=p.KodePasar
+										// 	WHERE t.TipeTransaksi='PENGIRIMAN'";
 										
-										if(@$_REQUEST['keyword']!=null){
-											$sql .= " AND t.TanggalTransaksi LIKE '%".$_REQUEST['keyword']."%'  ";
+										// if(@$_REQUEST['keyword']!=null){
+										// 	$sql .= " AND t.TanggalTransaksi LIKE '%".$_REQUEST['keyword']."%'  ";
+										// }
+										
+										// $sql .=" ORDER BY t.TanggalTransaksi ASC";
+										// $result = mysqli_query($koneksi,$sql);
+										
+										// @$tcount = mysqli_num_rows($result);
+										$sql = "SELECT t.NoTransArusKB, t.TanggalTransaksi, t.KodeBatchPencetakan, t.TotalNilaKB, t.UserName, i.JumlahKreditKB, i.TotalNominal, i.NoSeriAwal, i.NoSeriAkhir, i.KodeBatch, i.Keterangan, m.NamaKB, p.NamaPasar
+												FROM traruskb t
+												JOIN traruskbitem i ON t.NoTransArusKB = i.NoTransArusKB
+												JOIN mstkertasberharga m ON i.KodeKB = m.KodeKB
+												JOIN mstpasar p ON t.KodePasar = p.KodePasar
+												WHERE t.TipeTransaksi = 'PENGIRIMAN'";
+
+										if(isset($_REQUEST['keyword']) && !empty($_REQUEST['keyword'])) {
+											$keyword = "%" . $_REQUEST['keyword'] . "%";
+											$sql .= " AND t.TanggalTransaksi LIKE ?";
 										}
-										
-										$sql .=" ORDER BY t.TanggalTransaksi ASC";
-										$result = mysqli_query($koneksi,$sql);
-										
+
+										$sql .= " ORDER BY t.TanggalTransaksi ASC";
+
+										$stmt = mysqli_prepare($koneksi, $sql);
+
+										if(isset($_REQUEST['keyword']) && !empty($_REQUEST['keyword'])) {
+											mysqli_stmt_bind_param($stmt, "s", $keyword);
+										}
+
+										mysqli_stmt_execute($stmt);
+
+										$result = mysqli_stmt_get_result($stmt);
+
+										$tcount = mysqli_num_rows($result);
+
 										//pagination config start
 										$rpp = 15; // jumlah record per halaman
 										$page = intval(@$_GET["page"]);
 										if($page<=0) $page = 1;  
-										@$tcount = mysqli_num_rows($result);
 										$tpages = ($tcount) ? ceil($tcount/$rpp) : 1; // total pages, last page number
 										$count = 0;
 										$i = ($page-1)*$rpp;
@@ -271,6 +326,9 @@ $Tahun=date('Y');
 											$i++; 
 											$count++;
 											} 
+											mysqli_stmt_free_result($stmt);
+
+											mysqli_stmt_close($stmt);
 										}
 										
 										?>
