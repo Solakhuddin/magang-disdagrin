@@ -232,11 +232,55 @@ $DateTime=date('Y-m-d H:i:s');
 											$reload = "TimbanganUserDetil.php?pagination=true&keyword=$keyword";
 											$sql =  "SELECT b.IDTimbangan,c.JenisTimbangan,c.NamaTimbangan,b.NamaTimbangan as RealName,a.NamaPerson,a.IDPerson,d.NamaKelas,e.NamaUkuran,e.RetribusiDikantor,e.RetribusiDiLokasi,f.NamaLokasi,f.AlamatLokasi,b.StatusUTTP FROM mstperson a join timbanganperson b on a.IDPerson=b.IDPerson join msttimbangan c on b.KodeTimbangan=c.KodeTimbangan join kelas d on (b.KodeTimbangan,b.KodeKelas)=(d.KodeTimbangan,d.KodeKelas) join detilukuran e on (b.KodeTimbangan,b.KodeKelas,b.KodeUkuran)=(e.KodeTimbangan,e.KodeKelas,e.KodeUkuran) join lokasimilikperson f on (f.KodeLokasi,f.IDPerson)=(b.KodeLokasi,b.IDPerson) WHERE c.NamaTimbangan LIKE '%$keyword%' and a.IsVerified=b'1' and a.JenisPerson LIKE '%Timbangan%' and a.IDPerson='$IDPerson' GROUP BY b.IDTimbangan ASC";
 											$result = mysqli_query($koneksi,$sql);
+
+											// $sql = "SELECT b.IDTimbangan, c.JenisTimbangan, c.NamaTimbangan, b.NamaTimbangan as RealName, a.NamaPerson, a.IDPerson, d.NamaKelas, e.NamaUkuran, e.RetribusiDikantor, e.RetribusiDiLokasi, f.NamaLokasi, f.AlamatLokasi, b.StatusUTTP 
+											// 		FROM mstperson a 
+											// 		JOIN timbanganperson b ON a.IDPerson = b.IDPerson 
+											// 		JOIN msttimbangan c ON b.KodeTimbangan = c.KodeTimbangan 
+											// 		JOIN kelas d ON (b.KodeTimbangan, b.KodeKelas) = (d.KodeTimbangan, d.KodeKelas) 
+											// 		JOIN detilukuran e ON (b.KodeTimbangan, b.KodeKelas, b.KodeUkuran) = (e.KodeTimbangan, e.KodeKelas, e.KodeUkuran) 
+											// 		JOIN lokasimilikperson f ON (f.KodeLokasi, f.IDPerson) = (b.KodeLokasi, b.IDPerson) 
+											// 		WHERE c.NamaTimbangan LIKE ? 
+											// 		AND a.IsVerified = '1' 
+											// 		AND a.JenisPerson LIKE '%Timbangan%' 
+											// 		AND a.IDPerson = ? 
+											// 		GROUP BY b.IDTimbangan ASC";
+
+											// $stmt = mysqli_prepare($koneksi, $sql);
+
+											// mysqli_stmt_bind_param($stmt, "ss", $keyword, $IDPerson);
+
+											// mysqli_stmt_execute($stmt);
+
+											// $result = mysqli_stmt_get_result($stmt);
+
+											// mysqli_stmt_close($stmt);
 										}else{
 										//jika tidak ada pencarian pakai ini
 											$reload = "TimbanganUserDetil.php?pagination=true";
 											$sql =  "SELECT b.IDTimbangan,c.JenisTimbangan,c.NamaTimbangan,b.NamaTimbangan as RealName,a.NamaPerson,a.IDPerson,d.NamaKelas,e.NamaUkuran,e.RetribusiDikantor,e.RetribusiDiLokasi,f.NamaLokasi,f.AlamatLokasi,b.StatusUTTP FROM mstperson a join timbanganperson b on a.IDPerson=b.IDPerson join msttimbangan c on b.KodeTimbangan=c.KodeTimbangan join kelas d on (b.KodeTimbangan,b.KodeKelas)=(d.KodeTimbangan,d.KodeKelas) join detilukuran e on (b.KodeTimbangan,b.KodeKelas,b.KodeUkuran)=(e.KodeTimbangan,e.KodeKelas,e.KodeUkuran) join lokasimilikperson f on (f.KodeLokasi,f.IDPerson)=(b.KodeLokasi,b.IDPerson) WHERE  a.IsVerified=b'1' and a.JenisPerson LIKE '%Timbangan%' and a.IDPerson='$IDPerson'  GROUP BY b.IDTimbangan ASC";
 											@$result = mysqli_query($koneksi,$sql);
+										// 	$sql = "SELECT b.IDTimbangan, c.JenisTimbangan, c.NamaTimbangan, b.NamaTimbangan as RealName, a.NamaPerson, a.IDPerson, d.NamaKelas, e.NamaUkuran, e.RetribusiDikantor, e.RetribusiDiLokasi, f.NamaLokasi, f.AlamatLokasi, b.StatusUTTP 
+										// 			FROM mstperson a 
+										// 			JOIN timbanganperson b ON a.IDPerson = b.IDPerson 
+										// 			JOIN msttimbangan c ON b.KodeTimbangan = c.KodeTimbangan 
+										// 			JOIN kelas d ON (b.KodeTimbangan, b.KodeKelas) = (d.KodeTimbangan, d.KodeKelas) 
+										// 			JOIN detilukuran e ON (b.KodeTimbangan, b.KodeKelas, b.KodeUkuran) = (e.KodeTimbangan, e.KodeKelas, e.KodeUkuran) 
+										// 			JOIN lokasimilikperson f ON (f.KodeLokasi, f.IDPerson) = (b.KodeLokasi, b.IDPerson) 
+										// 			WHERE a.IsVerified = '1' 
+										// 			AND a.JenisPerson LIKE '%Timbangan%' 
+										// 			AND a.IDPerson = ? 
+										// 			GROUP BY b.IDTimbangan ASC";
+
+										// 	$stmt = mysqli_prepare($koneksi, $sql);
+
+										// 	mysqli_stmt_bind_param($stmt, "s", $IDPerson);
+
+										// 	mysqli_stmt_execute($stmt);
+
+										// 	$result = mysqli_stmt_get_result($stmt);
+
+										// 	mysqli_stmt_close($stmt);
 										}
 										
 										//pagination config start
@@ -315,14 +359,31 @@ $DateTime=date('Y-m-d H:i:s');
 										  <select id="KodeTimbangan" name="KodeTimbangan" class="form-control" >	
 												<?php
 													echo "<option value=''>--- Timbangan ---</option>";
-													$menu = mysqli_query($koneksi,"SELECT KodeTimbangan,NamaTimbangan from msttimbangan ORDER by NamaTimbangan ASC");
-													while($kode = mysqli_fetch_array($menu)){
-														if($kode['KodeTimbangan'] === $RowData['KodeTimbangan']){
-															echo "<option value=\"".$kode['KodeTimbangan']."\" selected='selected'>".$kode['NamaTimbangan']."</option>\n";
-														}else{
-															echo "<option value=\"".$kode['KodeTimbangan']."\" >".$kode['NamaTimbangan']."</option>\n";
+													// $menu = mysqli_query($koneksi,"SELECT KodeTimbangan,NamaTimbangan from msttimbangan ORDER by NamaTimbangan ASC");
+													// while($kode = mysqli_fetch_array($menu)){
+													// 	if($kode['KodeTimbangan'] === $RowData['KodeTimbangan']){
+													// 		echo "<option value=\"".$kode['KodeTimbangan']."\" selected='selected'>".$kode['NamaTimbangan']."</option>\n";
+													// 	}else{
+													// 		echo "<option value=\"".$kode['KodeTimbangan']."\" >".$kode['NamaTimbangan']."</option>\n";
+													// 	}
+													// }
+													$sql = "SELECT KodeTimbangan, NamaTimbangan FROM msttimbangan ORDER BY NamaTimbangan ASC";
+													$stmt = mysqli_prepare($koneksi, $sql);
+
+													mysqli_stmt_execute($stmt);
+
+													mysqli_stmt_bind_result($stmt, $KodeTimbangan, $NamaTimbangan);
+												
+													while (mysqli_stmt_fetch($stmt)) {
+														if ($KodeTimbangan === $RowData['KodeTimbangan']) {
+															echo "<option value=\"" . htmlspecialchars($KodeTimbangan) . "\" selected='selected'>" . htmlspecialchars($NamaTimbangan) . "</option>\n";
+														} else {
+															echo "<option value=\"" . htmlspecialchars($KodeTimbangan) . "\">" . htmlspecialchars($NamaTimbangan) . "</option>\n";
 														}
 													}
+
+													// Close statement
+													mysqli_stmt_close($stmt);
 												?>
 											</select>
 											
@@ -520,9 +581,23 @@ $DateTime=date('Y-m-d H:i:s');
 	<?php
 	
 	if(base64_decode(@$_GET['aksi'])=='Hapus'){
-		$QueryCekData = @mysqli_query($koneksi, "SELECT IDTimbangan FROM trtimbanganitem where IDTimbangan='".base64_decode($_GET['tr'])."'"); 
-		$numCek = @mysqli_num_rows($QueryCekData); 
-		// echo $numCek;
+		// $QueryCekData = @mysqli_query($koneksi, "SELECT IDTimbangan FROM trtimbanganitem where IDTimbangan='".base64_decode($_GET['tr'])."'"); 
+		// $numCek = @mysqli_num_rows($QueryCekData); 
+		$IDTimbangan = base64_decode($_GET['tr']); 
+
+		$query = "SELECT IDTimbangan FROM trtimbanganitem WHERE IDTimbangan = ?";
+		$stmt = mysqli_prepare($koneksi, $query);
+
+		mysqli_stmt_bind_param($stmt, "s", $IDTimbangan);
+
+		mysqli_stmt_execute($stmt);
+
+		mysqli_stmt_store_result($stmt);
+
+		$numCek = mysqli_stmt_num_rows($stmt);
+
+		mysqli_stmt_close($stmt);
+
 		if($numCek > 0){
 			echo '<script type="text/javascript">
 						  sweetAlert({
@@ -535,13 +610,43 @@ $DateTime=date('Y-m-d H:i:s');
 						  });
 						  </script>';
 		}else{
-			//hapus transaksi timbangan user
-			$HapusGambar = mysqli_query($koneksi,"SELECT FotoTimbangan1,FotoTimbangan2,FotoTimbangan3,FotoTimbangan4,QRCode FROM timbanganperson WHERE IDTimbangan='".base64_decode($_GET['tr'])."'");
-			$data=mysqli_fetch_array($HapusGambar);
+			// $HapusGambar = mysqli_query($koneksi,"SELECT FotoTimbangan1,FotoTimbangan2,FotoTimbangan3,FotoTimbangan4,QRCode FROM timbanganperson WHERE IDTimbangan='".base64_decode($_GET['tr'])."'");
+			// $data=mysqli_fetch_assoc($HapusGambar);
 			
-			$query = mysqli_query($koneksi,"delete from timbanganperson WHERE IDTimbangan='".base64_decode($_GET['tr'])."'");
-			if($query){
-				//hapus gambar terlebih dahulu
+			// $query = mysqli_query($koneksi,"delete from timbanganperson WHERE IDTimbangan='".base64_decode($_GET['tr'])."'");
+			$IDTimbanganSelect = base64_decode($_GET['tr']);
+			
+			$querySelect = "SELECT FotoTimbangan1, FotoTimbangan2, FotoTimbangan3, FotoTimbangan4, QRCode 
+								FROM timbanganperson 
+								WHERE IDTimbangan = ?";
+			$stmtSelect = mysqli_prepare($koneksi, $querySelect);
+			mysqli_stmt_bind_param($stmtSelect, "s", $IDTimbanganSelect);
+
+			mysqli_stmt_execute($stmtSelect);
+
+			mysqli_stmt_bind_result($stmtSelect, $FotoTimbangan1, $FotoTimbangan2, $FotoTimbangan3, $FotoTimbangan4, $QRCode);
+			$data = [
+				"FotoTimbangan1" => $FotoTimbangan1, 
+				"FotoTimbangan2" => $FotoTimbangan2, 
+				"FotoTimbangan3" => $FotoTimbangan3, 
+				"FotoTimbangan4" => $FotoTimbangan4, 
+				"QRCode" => $QRCode
+			];
+			mysqli_stmt_fetch($stmtSelect);
+
+			mysqli_stmt_close($stmtSelect);
+
+			$queryDelete = "DELETE FROM timbanganperson WHERE IDTimbangan = ?";
+			$stmtDelete = mysqli_prepare($koneksi, $queryDelete);
+			mysqli_stmt_bind_param($stmtDelete, "s", $IDTimbanganDelete);
+
+			$IDTimbanganDelete = base64_decode($_GET['tr']); 
+		
+			$cek =  mysqli_stmt_execute($stmtDelete);
+
+			mysqli_stmt_close($stmtDelete);
+
+			if($cek){
 				unlink("../images/TimbanganQR/".$data['QRCode']."");
 				unlink("../images/Timbangan/".$data['FotoTimbangan1']."");
 				unlink("../images/Timbangan/thumb_".$data['FotoTimbangan1']."");
@@ -571,10 +676,23 @@ $DateTime=date('Y-m-d H:i:s');
 	}
 	
 	function NamaPerson($koneksi, $IDPerson){
-		$query = "SELECT NamaPerson FROM mstperson where IDPerson='$IDPerson'";
-		$conn = mysqli_query($koneksi, $query);
-		$result = mysqli_fetch_array($conn);
-		$NamaPerson = $result['NamaPerson'];
+		// $query = "SELECT NamaPerson FROM mstperson where IDPerson='$IDPerson'";
+		// $conn = mysqli_query($koneksi, $query);
+		// $result = mysqli_fetch_array($conn);
+		// $NamaPerson = $result['NamaPerson'];
+
+		$query = "SELECT NamaPerson FROM mstperson WHERE IDPerson=?";
+		$stmt = mysqli_prepare($koneksi, $query);
+
+		mysqli_stmt_bind_param($stmt, "s", $IDPerson);
+
+		mysqli_stmt_execute($stmt);
+
+		mysqli_stmt_bind_result($stmt, $NamaPerson);
+
+		mysqli_stmt_fetch($stmt);
+
+		mysqli_stmt_close($stmt);
 		
 		return $NamaPerson;
 	 }
