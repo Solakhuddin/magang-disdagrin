@@ -10,8 +10,18 @@ $DateTime=date('Y-m-d H:i:s');
 
 if(@$_GET['id']!=null){
 	$Sebutan = 'Edit Data';	
-	@$Edit = mysqli_query($koneksi,"SELECT a.* FROM timbanganperson a WHERE a.IDTimbangan='".htmlspecialchars(base64_decode($_GET['id']))."'");
-	@$RowData = mysqli_fetch_assoc($Edit);
+	// @$Edit = mysqli_query($koneksi,"SELECT a.* FROM timbanganperson a WHERE a.IDTimbangan='".htmlspecialchars(base64_decode($_GET['id']))."'");
+	// @$RowData = mysqli_fetch_assoc($Edit);
+	$id = base64_decode($_GET['id']);
+
+	$Edit = mysqli_prepare($koneksi, "SELECT a.* FROM timbanganperson a WHERE a.IDTimbangan = ?");
+	mysqli_stmt_bind_param($Edit, "s", $id);
+	mysqli_stmt_execute($Edit);
+	$result = mysqli_stmt_get_result($Edit);
+
+	$RowData = mysqli_fetch_assoc($result);
+
+	mysqli_stmt_close($Edit);
 	@$ket 	  = explode('#', $RowData['Keterangan']); 
 }
 
@@ -152,8 +162,16 @@ if(@$_GET['id']!=null){
 										  <select id="KodeKelas" name="KodeKelas" class="form-control" >	
 												<?php
 													echo "<option value=''>--- Nama Kelas ---</option>";
-													$menu = mysqli_query($koneksi,"SELECT KodeKelas,NamaKelas,Keterangan from kelas where KodeTimbangan='".$RowData['KodeTimbangan']."' ORDER by NamaKelas ASC");
-													while($kode = mysqli_fetch_array($menu)){
+													// $menu = mysqli_query($koneksi,"SELECT KodeKelas,NamaKelas,Keterangan from kelas where KodeTimbangan='".$RowData['KodeTimbangan']."' ORDER by NamaKelas ASC");
+													// while($kode = mysqli_fetch_array($menu)){
+													$kodeTimbangan = $RowData['KodeTimbangan'];
+
+													$menu = mysqli_prepare($koneksi, "SELECT KodeKelas, NamaKelas, Keterangan FROM kelas WHERE KodeTimbangan = ? ORDER BY NamaKelas ASC");
+													mysqli_stmt_bind_param($menu, "s", $kodeTimbangan);
+													mysqli_stmt_execute($menu);
+													$result = mysqli_stmt_get_result($menu);
+
+													while ($kode = mysqli_fetch_array($result)) {
 														if($kode['KodeKelas'] === $RowData['KodeKelas']){
 															if($RowData['NamaKelas'] != '' OR $RowData['NamaKelas'] != null){
 																echo "<option value=\"".$kode['KodeKelas']."\" selected='selected'>".$kode['NamaKelas']."</option>\n";
@@ -164,6 +182,7 @@ if(@$_GET['id']!=null){
 															echo "<option value=\"".$kode['KodeKelas']."\" >".$kode['NamaKelas']."</option>\n";
 														}
 													}
+													mysqli_stmt_close($menu);
 												?>
 											</select>
 										</div>
@@ -172,15 +191,24 @@ if(@$_GET['id']!=null){
 										  <select id="KodeUkuran" name="KodeUkuran" class="form-control" >	
 												<?php
 													echo "<option value=''>--- Nama Ukuran ---</option>";
-													$menu = mysqli_query($koneksi,"SELECT KodeUkuran,NamaUkuran from detilukuran where KodeKelas='".$RowData['KodeKelas']."' ORDER by NamaUkuran ASC");
-													while($kode = mysqli_fetch_array($menu)){
+													// $menu = mysqli_query($koneksi,"SELECT KodeUkuran,NamaUkuran from detilukuran where KodeKelas='".$RowData['KodeKelas']."' ORDER by NamaUkuran ASC");
+													// while($kode = mysqli_fetch_array($menu)){
+													$kodeKelas = $RowData['KodeKelas'];
+
+													$menu = mysqli_prepare($koneksi, "SELECT KodeUkuran, NamaUkuran FROM detilukuran WHERE KodeKelas = ? ORDER BY NamaUkuran ASC");
+													mysqli_stmt_bind_param($menu, "s", $kodeKelas);
+													mysqli_stmt_execute($menu);
+													$result = mysqli_stmt_get_result($menu);
+
+													while ($kode = mysqli_fetch_array($result)) {
 														if($kode['KodeUkuran'] === $RowData['KodeUkuran']){
 															echo "<option value=\"".$kode['KodeUkuran']."\" selected='selected'>".$kode['NamaUkuran']."</option>\n";	
 															
 														}else{
 															echo "<option value=\"".$kode['KodeUkuran']."\" >".$kode['NamaUkuran']."</option>\n";
 														}
-													}
+													}										
+													mysqli_stmt_close($menu);		
 												?>
 											</select>
 										</div>
@@ -189,9 +217,17 @@ if(@$_GET['id']!=null){
 										  <select id="KodeLokasi" name="KodeLokasi" class="form-control" >	
 												<?php
 													echo "<option value=''>--- Pilih Lokasi ---</option>";
-													$menu = mysqli_query($koneksi,"SELECT * FROM lokasimilikperson where IDPerson='". $RowData['IDPerson']."' ORDER BY NamaLokasi");
-													while($kode = mysqli_fetch_array($menu)){
-														
+													// $menu = mysqli_query($koneksi,"SELECT * FROM lokasimilikperson where IDPerson='". $RowData['IDPerson']."' ORDER BY NamaLokasi");
+													// while($kode = mysqli_fetch_array($menu)){
+													$kodeKelas = $RowData['KodeKelas'];
+
+													$menu = mysqli_prepare($koneksi, "SELECT KodeUkuran, NamaUkuran FROM detilukuran WHERE KodeKelas = ? ORDER BY NamaUkuran ASC");
+													mysqli_stmt_bind_param($menu, "s", $kodeKelas);
+													mysqli_stmt_execute($menu);
+													$result = mysqli_stmt_get_result($menu);
+
+													while ($kode = mysqli_fetch_array($result)) {
+	
 														if($kode['KodeLokasi'] === @$RowData['KodeLokasi']){
 															echo "<option value=\"".$kode['KodeLokasi']."\" selected='selected'>".$kode['NamaLokasi']."</option>\n";
 														}else{
@@ -201,6 +237,7 @@ if(@$_GET['id']!=null){
 														$LAT = $RowData['KoorLat'];
 														$LONG = $RowData['KoorLong'];
 													}
+													mysqli_stmt_close($menu);
 												?>
 											</select>
 										</div>
@@ -575,8 +612,16 @@ if(@$_GET['id']!=null){
 		@$Jumlah		 	 = htmlspecialchars($_POST['Jumlah']);
 		@$Keterangan		 = $Merk."#".$Type."#".$Seri."#".$Buatan."#".$Medium."#".$Jumlah;
 		
-		$cek2 = mysqli_query($koneksi,"select KoorLong from timbanganperson where KoorLong='$LngAsli'");
-		$num2 = mysqli_num_rows($cek2);
+		// $cek2 = mysqli_query($koneksi,"select KoorLong from timbanganperson where KoorLong='$LngAsli'");
+		// $num2 = mysqli_num_rows($cek2);
+
+		$cek2 = mysqli_prepare($koneksi, "SELECT KoorLong FROM timbanganperson WHERE KoorLong = ?");
+		mysqli_stmt_bind_param($cek2, "s", $LngAsli);
+		mysqli_stmt_execute($cek2);
+		mysqli_stmt_store_result($cek2);
+		$num2 = mysqli_stmt_num_rows($cek2);
+
+		mysqli_stmt_close($cek2);
 		if($num2 > 0 ){
 			@$Lng = $LngAsli+0.0001;
 		}else{
@@ -584,8 +629,26 @@ if(@$_GET['id']!=null){
 		}
 		
 		// query update
-		$query = mysqli_query($koneksi,"UPDATE timbanganperson SET NamaTimbangan='$NamaTimbangan',KodeTimbangan='$Timbangan',KodeLokasi='$KodeLokasi',Keterangan='$Keterangan',KodeKelas='$Kelas',KodeUkuran='$Ukuran', UkuranRealTimbangan='$UkuranRealTimbangan',KoorLat='$Lat',KoorLong='$Lng',Satuan='$Satuan' WHERE IDTimbangan='$idtimbangan' AND IDPerson='$IDPerson'");
-		if($query){
+		// $query = mysqli_query($koneksi,"UPDATE timbanganperson SET NamaTimbangan='$NamaTimbangan',KodeTimbangan='$Timbangan',KodeLokasi='$KodeLokasi',Keterangan='$Keterangan',KodeKelas='$Kelas',KodeUkuran='$Ukuran', UkuranRealTimbangan='$UkuranRealTimbangan',KoorLat='$Lat',KoorLong='$Lng',Satuan='$Satuan' WHERE IDTimbangan='$idtimbangan' AND IDPerson='$IDPerson'");
+		$stmt = mysqli_prepare($koneksi, "UPDATE timbanganperson 
+                                   SET NamaTimbangan=?, 
+                                       KodeTimbangan=?, 
+                                       KodeLokasi=?, 
+                                       Keterangan=?, 
+                                       KodeKelas=?, 
+                                       KodeUkuran=?, 
+                                       UkuranRealTimbangan=?, 
+                                       KoorLat=?, 
+                                       KoorLong=?, 
+                                       Satuan=? 
+                                   WHERE IDTimbangan=? 
+                                     AND IDPerson=?");
+
+		mysqli_stmt_bind_param($stmt, "ssssssssssss", $NamaTimbangan, $Timbangan, $KodeLokasi, $Keterangan, $Kelas, $Ukuran, $UkuranRealTimbangan, $Lat, $Lng, $Satuan, $idtimbangan, $IDPerson);
+
+		$cek = mysqli_stmt_execute($stmt);
+		
+		if($cek){
 			InsertLog($koneksi, 'Edit Data', 'Mengubah Timbangan User atas nama '.$NamaPerson.' dengan nama timbangan '.$NamaTimbangan, $login_id, $idtimbangan, 'Timbangan User');
 			echo '<script language="javascript">document.location="TimbanganUserDetil.php?user='.base64_encode($IDPerson).'";</script>';
 		}else{
@@ -600,12 +663,30 @@ if(@$_GET['id']!=null){
 				  });
 				  </script>';
 		}
+		mysqli_stmt_close($stmt);
 	}
 	
-	 function NamaPerson($koneksi, $IDPerson){
-		$query = "SELECT NamaPerson FROM mstperson where IDPerson='$IDPerson'";
-		$conn = mysqli_query($koneksi, $query);
-		$result = mysqli_fetch_array($conn);
+	function NamaPerson($koneksi, $IDPerson){
+		// $query = "SELECT NamaPerson FROM mstperson where IDPerson='$IDPerson'";
+		// $conn = mysqli_query($koneksi, $query);
+		// $result = mysqli_fetch_array($conn);
+		$stmt = mysqli_prepare($koneksi, "SELECT NamaPerson FROM mstperson WHERE IDPerson=?");
+
+		mysqli_stmt_bind_param($stmt, "s", $IDPerson);
+
+		$IDPerson = 'value'; 
+
+		mysqli_stmt_execute($stmt);
+
+		mysqli_stmt_bind_result($stmt, $NamaPerson);
+
+		mysqli_stmt_fetch($stmt);
+
+		$result = [
+			"NamaPerson" => $NamaPerson
+		];
+
+		mysqli_stmt_close($stmt);
 		$NamaPerson = $result['NamaPerson'];
 		
 		return $NamaPerson;
