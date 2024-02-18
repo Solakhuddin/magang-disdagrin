@@ -18,9 +18,37 @@ $NamaBulan = array (1 =>   'Januari',
 	'Desember'
 );
 
-$QuerySetting = mysqli_query($koneksi,"SELECT Value FROM sistemsetting WHERE KodeSetting='SET-0002'");
-$RowSetting = mysqli_fetch_array($QuerySetting);
-$SetSurat = explode("#", $RowSetting['Value']);
+// $QuerySetting = mysqli_query($koneksi,"SELECT Value FROM sistemsetting WHERE KodeSetting='SET-0002'");
+// $RowSetting = mysqli_fetch_array($QuerySetting);
+// $SetSurat = explode("#", $RowSetting['Value']);
+
+$koneksi = mysqli_connect("localhost", "username", "password", "database");
+
+
+$query = "SELECT Value FROM sistemsetting WHERE KodeSetting = ?";
+$stmt = mysqli_prepare($koneksi, $query);
+    
+
+$kodeSetting = 'SET-0002';
+
+mysqli_stmt_bind_param($stmt, "s", $kodeSetting);
+
+mysqli_stmt_execute($stmt);
+
+
+mysqli_stmt_bind_result($stmt, $value);
+
+
+mysqli_stmt_fetch($stmt);
+
+
+mysqli_stmt_close($stmt);
+    
+
+$SetSurat = explode("#", $value);
+
+
+
 ?>
 <!DOCTYPE html>
 <html>
@@ -314,33 +342,87 @@ $SetSurat = explode("#", $RowSetting['Value']);
 	if(isset($_POST['Simpan'])){
 		
 		// cek apakah sudah ada target tahunan di bulan dan tahun yang sama
-		$cek = @mysqli_query($koneksi, "SELECT * from targettahunan where (date_format(ThAnggaran, '%Y-%m')= '$ThAnggaran')");
-		$num = @mysqli_num_rows($cek);
+		// $cek = @mysqli_query($koneksi, "SELECT * from targettahunan where (date_format(ThAnggaran, '%Y-%m')= '$ThAnggaran')");
+		// $num = @mysqli_num_rows($cek);
+
+		$query = "SELECT * FROM targettahunan WHERE DATE_FORMAT(ThAnggaran, '%Y-%m') = ?";
+		$stmt = mysqli_prepare($koneksi, $query);
 		
+		$ThAnggaran = '2024-02'; 
+		mysqli_stmt_bind_param($stmt, "s", $ThAnggaran);
+		mysqli_stmt_execute($stmt);
+
+		mysqli_stmt_store_result($stmt);
+
+		$num = mysqli_stmt_num_rows($stmt);
+
+		mysqli_stmt_close($stmt);
+
 		if($num > 0){
 			echo '<script type="text/javascript">swal( "Laporan Realisasi Target sudah ada", "Silahkan Pilih Periode Bulan yang berbeda ", "error" ); </script>';
 		}else{
 		
 			$Tahun=date('Ym');
-			$sql = "SELECT RIGHT(NoTrans,6) AS kode FROM targettahunan ORDER BY NoTrans DESC LIMIT 1";
-			$res = mysqli_query($koneksi, $sql);
-			$result = mysqli_fetch_array($res);
+			// $sql = "SELECT RIGHT(NoTrans,6) AS kode FROM targettahunan ORDER BY NoTrans DESC LIMIT 1";
+			// $res = mysqli_query($koneksi, $sql);
+			// $result = mysqli_fetch_array($res);
+
+			$query = "SELECT RIGHT(NoTrans,6) AS kode FROM targettahunan ORDER BY NoTrans DESC LIMIT 1";
+			$stmt = mysqli_prepare($koneksi, $query);
+			
+			mysqli_stmt_execute($stmt);
+
+			mysqli_stmt_bind_result($stmt, $kode);
+
+			mysqli_stmt_fetch($stmt);
+
+			$result = [
+				"kode" => $kode
+			];
+
+			mysqli_stmt_close($stmt);
+
 			if ($result['kode'] == null) {
-				$kode = 1;
+				$kode2 = 1;
 			} else {
-				$kode = ++$result['kode'];
+				$kode2 = ++$result['kode'];
 			}
-			$bikin_kode = str_pad($kode, 6, "0", STR_PAD_LEFT);
+			$bikin_kode = str_pad($kode2, 6, "0", STR_PAD_LEFT);
 			$kode_jadi	 = $Tahun."-".$bikin_kode;
 			
 			
-			$query = mysqli_query($koneksi,"INSERT into targettahunan (NoTrans,JenisTarget,ThAnggaran,KodeRekening,TargetAwal,TargetPAK) 
-			VALUES ('$kode_jadi','$JenisTarget','".$ThAnggaran."-".$TangalJam."','$KodeRekening','$TargetAwal','$TargetPAK')");
-			if($query){
+			// $query = mysqli_query($koneksi,"INSERT into targettahunan (NoTrans,JenisTarget,ThAnggaran,KodeRekening,TargetAwal,TargetPAK) 
+			// VALUES ('$kode_jadi','$JenisTarget','".$ThAnggaran."-".$TangalJam."','$KodeRekening','$TargetAwal','$TargetPAK')");
+			
+
+			$query = "INSERT INTO targettahunan (NoTrans, JenisTarget, ThAnggaran, KodeRekening, TargetAwal, TargetPAK) 
+				VALUES (?, ?, CONCAT(?, ?), ?, ?, ?)";
+			$stmt = mysqli_prepare($koneksi, $query);
+			
+			mysqli_stmt_bind_param($stmt, "sssssss", $kode_jadi, $JenisTarget, $ThAnggaran, $TangalJam, $KodeRekening, $TargetAwal, $TargetPAK);
+			$cek = mysqli_stmt_execute($stmt);
+
+			mysqli_stmt_close($stmt);
+
+			if($cek){
 				$Tahun=date('Ym');
-				$sql1 = "SELECT RIGHT(NoTrans,6) AS kode1 FROM targettahunan ORDER BY NoTrans DESC LIMIT 1";
-				$res1 = mysqli_query($koneksi, $sql1);
-				$result1 = mysqli_fetch_array($res1);
+				// $sql1 = "SELECT RIGHT(NoTrans,6) AS kode1 FROM targettahunan ORDER BY NoTrans DESC LIMIT 1";
+				// $res1 = mysqli_query($koneksi, $sql1);
+				// $result1 = mysqli_fetch_array($res1);
+				$query = "SELECT RIGHT(NoTrans,6) AS kode1 FROM targettahunan ORDER BY NoTrans DESC LIMIT 1";
+				$stmt = mysqli_prepare($koneksi, $query);
+				
+				mysqli_stmt_execute($stmt);
+
+				mysqli_stmt_bind_result($stmt, $kode1);
+
+				mysqli_stmt_fetch($stmt);
+				$result1 = [
+					"$kode1" => $kode1
+				];
+
+				mysqli_stmt_close($stmt);
+
 				if ($result1['kode1'] == null) {
 					$kode1 = 1;
 				} else {
@@ -374,10 +456,25 @@ $SetSurat = explode("#", $RowSetting['Value']);
 	if(isset($_POST['EditSimpan'])){
 		
 		// query update
-		mysqli_query($koneksi,"UPDATE targettahunan SET KodeRekening='$KodeRekening',TargetAwal='$TargetAwal',TargetPAK='$TargetPAK' where (date_format(ThAnggaran, '%Y-%m-%d')= '$ThAnggaran1') and JenisTarget='PAD'");
+		// mysqli_query($koneksi,"UPDATE targettahunan SET KodeRekening='$KodeRekening',TargetAwal='$TargetAwal',TargetPAK='$TargetPAK' where (date_format(ThAnggaran, '%Y-%m-%d')= '$ThAnggaran1') and JenisTarget='PAD'");
 		
-		$query = mysqli_query($koneksi,"UPDATE targettahunan SET KodeRekening='$KodeRekeningUTTP',TargetAwal='$TargetAwalUTTP',TargetPAK='$TargetPAKUTTP' where (date_format(ThAnggaran, '%Y-%m-%d')= '$ThAnggaran1') and JenisTarget='UTTP'");
-		if($query){
+		// $query = mysqli_query($koneksi,"UPDATE targettahunan SET KodeRekening='$KodeRekeningUTTP',TargetAwal='$TargetAwalUTTP',TargetPAK='$TargetPAKUTTP' where (date_format(ThAnggaran, '%Y-%m-%d')= '$ThAnggaran1') and JenisTarget='UTTP'");
+
+		$query_PAD = "UPDATE targettahunan SET KodeRekening=?, TargetAwal=?, TargetPAK=? WHERE DATE_FORMAT(ThAnggaran, '%Y-%m-%d') = ? AND JenisTarget='PAD'";
+		$stmt_PAD = mysqli_prepare($koneksi, $query_PAD);
+		mysqli_stmt_bind_param($stmt_PAD, "ssss", $KodeRekening, $TargetAwal, $TargetPAK, $ThAnggaran1);
+		mysqli_stmt_execute($stmt_PAD);
+
+		mysqli_stmt_close($stmt_PAD);
+
+		$query_UTTP = "UPDATE targettahunan SET KodeRekening=?, TargetAwal=?, TargetPAK=? WHERE DATE_FORMAT(ThAnggaran, '%Y-%m-%d') = ? AND JenisTarget='UTTP'";
+		$stmt_UTTP = mysqli_prepare($koneksi, $query_UTTP);
+		mysqli_stmt_bind_param($stmt_UTTP, "ssss", $KodeRekeningUTTP, $TargetAwalUTTP, $TargetPAKUTTP, $ThAnggaran1);
+		$cek = mysqli_stmt_execute($stmt_UTTP);
+
+		mysqli_stmt_close($stmt_UTTP);
+
+		if($cek){
 			InsertLog($koneksi, 'Edit Data', 'Mengubah Target Laporan Realisasi PAD dan UTTP', $login_id, $NoTrans, 'Laporan Target Realisasi');
 			echo '<script language="javascript">document.location="TargetTahunan.php";</script>';
 		}else{
@@ -396,8 +493,17 @@ $SetSurat = explode("#", $RowSetting['Value']);
 	
 	if(isset($_POST['Export'])){
 		//update setting
-		mysqli_query($koneksi,"UPDATE sistemsetting SET Value='".$_POST['Nama']."#".$_POST['Pangkat']."#".$_POST['NIP']."' WHERE KodeSetting='SET-0002' ");
+		// mysqli_query($koneksi,"UPDATE sistemsetting SET Value='".$_POST['Nama']."#".$_POST['Pangkat']."#".$_POST['NIP']."' WHERE KodeSetting='SET-0002' ");
 		
+		$query = "UPDATE sistemsetting SET Value = ? WHERE KodeSetting = 'SET-0002'";
+		$stmt = mysqli_prepare($koneksi, $query);
+		
+		$value = $_POST['Nama'] . "#" . $_POST['Pangkat'] . "#" . $_POST['NIP'];
+		mysqli_stmt_bind_param($stmt, "s", $value);
+		mysqli_stmt_execute($stmt);
+
+		mysqli_stmt_close($stmt);
+
 		echo '<script language="javascript">document.location="../library/Export/LapTargetBulanan.php?bln='.base64_encode($_POST['Bulan']).'&nm='.base64_encode($_POST['Nama']).'&pkt='.base64_encode($_POST['Pangkat']).'&np='.base64_encode($_POST['NIP']).'";</script>';
 	}
 	
