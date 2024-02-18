@@ -164,18 +164,41 @@ if($stmt->execute()){
                                                         <select name="gr" id="gr" class="form-control">
                                                         <?php 
 
-                                                            if($display === "ketersediaan"){
-                                                            $tambah = "AND (KodeGroup ='GROUP-2019-0000001' OR KodeGroup ='GROUP-2019-0000004' OR KodeGroup ='GROUP-2019-0000005' OR KodeGroup ='GROUP-2019-0000012' OR KodeGroup ='GROUP-2019-0000013')";
-                                                        }
+                                                            // if($display === "ketersediaan"){
+                                                            // $tambah = "AND (KodeGroup ='GROUP-2019-0000001' OR KodeGroup ='GROUP-2019-0000004' OR KodeGroup ='GROUP-2019-0000005' OR KodeGroup ='GROUP-2019-0000012' OR KodeGroup ='GROUP-2019-0000013')";
+                                                            // }
+                                                            // $sql_g = "SELECT * FROM mstgroupbarang WHERE IsAktif = 1 $tambah ORDER BY KodeGroup ASC";
+                                                            // $res_g = $koneksi->query($sql_g);
+                                                            // while ($row = mysqli_fetch_assoc($res_g)) {
+                                                            //     if(isset($KodeGroup) && $row['KodeGroup'] == $KodeGroup){
+                                                            //         echo '<option value="'.base64_encode($row['KodeGroup']).'" selected>'.$row['NamaGroup'].'</option>';
+                                                            //     }else{
+                                                            //         echo '<option value="'.base64_encode($row['KodeGroup']).'">'.$row['NamaGroup'].'</option>';
+                                                            //     }
+                                                            // }
+                                                            $tambah = "";
+
+                                                            if ($display === "ketersediaan") {
+                                                                $tambah = "AND (KodeGroup ='GROUP-2019-0000001' OR KodeGroup ='GROUP-2019-0000004' OR KodeGroup ='GROUP-2019-0000005' OR KodeGroup ='GROUP-2019-0000012' OR KodeGroup ='GROUP-2019-0000013')";
+                                                            }
+
                                                             $sql_g = "SELECT * FROM mstgroupbarang WHERE IsAktif = 1 $tambah ORDER BY KodeGroup ASC";
-                                                            $res_g = $koneksi->query($sql_g);
-                                                            while ($row = mysqli_fetch_assoc($res_g)) {
-                                                                if(isset($KodeGroup) && $row['KodeGroup'] == $KodeGroup){
-                                                                    echo '<option value="'.base64_encode($row['KodeGroup']).'" selected>'.$row['NamaGroup'].'</option>';
-                                                                }else{
-                                                                    echo '<option value="'.base64_encode($row['KodeGroup']).'">'.$row['NamaGroup'].'</option>';
+                                                            $stmt_g = mysqli_prepare($koneksi, $sql_g);
+
+                                                            mysqli_stmt_execute($stmt_g);
+
+                                                            mysqli_stmt_bind_result($stmt_g, $KodeGroup, $NamaGroup);
+
+                                                            while (mysqli_stmt_fetch($stmt_g)) {
+                                                                if (isset($KodeGroup) && $KodeGroup === $row['KodeGroup']) {
+                                                                    echo '<option value="'.base64_encode($KodeGroup).'" selected>'.$NamaGroup.'</option>';
+                                                                } else {
+                                                                    echo '<option value="'.base64_encode($KodeGroup).'">'.$NamaGroup.'</option>';
                                                                 }
                                                             }
+
+                                                            mysqli_stmt_close($stmt_g);
+
                                                         ?>
                                                         
                                                         </select>
