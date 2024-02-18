@@ -136,15 +136,29 @@ if($Tgl >= '01' && $Tgl <= '07'){
 											<select class="form-control" name="psr">
 												<option class="form-control" value="" selected>Semua Pasar</option>
 												<?php 
+												// $sql_p = "SELECT * FROM mstpasar ORDER BY NamaPasar ASC";
+												// $res_p = $koneksi->query($sql_p);
+												// while ($row_p = $res_p->fetch_assoc()) {
+												// 	if(isset($KodePasar) && $KodePasar === $row_p['KodePasar']){
+												// 		echo '<option class="form-control" value="'.base64_encode($row_p['KodePasar']).'" selected>'.$row_p['NamaPasar'].'</option>';
+												// 	}else{
+												// 		echo '<option class="form-control" value="'.base64_encode($row_p['KodePasar']).'">'.$row_p['NamaPasar'].'</option>';
+												// 	}
+												// }
 												$sql_p = "SELECT * FROM mstpasar ORDER BY NamaPasar ASC";
-												$res_p = $koneksi->query($sql_p);
-												while ($row_p = $res_p->fetch_assoc()) {
-													if(isset($KodePasar) && $KodePasar === $row_p['KodePasar']){
-														echo '<option class="form-control" value="'.base64_encode($row_p['KodePasar']).'" selected>'.$row_p['NamaPasar'].'</option>';
-													}else{
-														echo '<option class="form-control" value="'.base64_encode($row_p['KodePasar']).'">'.$row_p['NamaPasar'].'</option>';
+												$stmt_p = mysqli_prepare($koneksi, $sql_p);
+												mysqli_stmt_execute($stmt_p);
+
+												mysqli_stmt_bind_result($stmt_p, $KodePasar, $NamaPasar);
+
+												while (mysqli_stmt_fetch($stmt_p)) {
+													if (isset($KodePasar) && $KodePasar === $row_p['KodePasar']) {
+														echo '<option class="form-control" value="'.base64_encode($KodePasar).'" selected>'.$NamaPasar.'</option>';
+													} else {
+														echo '<option class="form-control" value="'.base64_encode($KodePasar).'">'.$NamaPasar.'</option>';
 													}
 												}
+												mysqli_stmt_close($stmt_p);
 												?>
 											</select>
 
