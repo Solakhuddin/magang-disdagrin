@@ -16,14 +16,47 @@ $KodePasar = isset($_GET['psr']) ? mysqli_real_escape_string($koneksi,base64_dec
 $KodeBarang = isset($_GET['brg']) ? mysqli_real_escape_string($koneksi,base64_decode($_GET['brg'])) : '';
 //WHERE Kodepasar = $KodePasar
 
-$sql_p = "SELECT KodePasar,NamaPasar FROM mstpasar Where KodePasar = '$KodePasar'";
-$res_p = $koneksi->query($sql_p);
-$row_pasar = $res_p->fetch_assoc();
+// $sql_p = "SELECT KodePasar,NamaPasar FROM mstpasar Where KodePasar = '$KodePasar'";
+// $res_p = $koneksi->query($sql_p);
+// $row_pasar = $res_p->fetch_assoc();
 
-$sql_b = "SELECT KodeBarang, NamaBarang FROM mstbarangpokok WHERE KodeBarang = '$KodeBarang'";
-$res_b = $koneksi->query($sql_b);
-$row_barang = $res_b->fetch_assoc();
+$sql_p = "SELECT KodePasar, NamaPasar FROM mstpasar WHERE KodePasar = ?";
+$stmt_p = mysqli_prepare($koneksi, $sql_p);
 
+mysqli_stmt_bind_param($stmt_p, "s", $KodePasar);
+mysqli_stmt_execute($stmt_p);
+
+mysqli_stmt_bind_result($stmt_p, $kodePasarResult, $namaPasarResult);
+
+mysqli_stmt_fetch($stmt_p);
+
+$row_pasar = [
+    'KodePasar' => $kodePasarResult,
+    'NamaPasar' => $namaPasarResult
+];
+
+mysqli_stmt_close($stmt_p);
+
+
+// $sql_b = "SELECT KodeBarang, NamaBarang FROM mstbarangpokok WHERE KodeBarang = '$KodeBarang'";
+// $res_b = $koneksi->query($sql_b);
+// $row_barang = $res_b->fetch_assoc();
+
+$sql_b = "SELECT KodeBarang, NamaBarang FROM mstbarangpokok WHERE KodeBarang = ?";
+$stmt_b = mysqli_prepare($koneksi, $sql_b);
+mysqli_stmt_bind_param($stmt_b, "s", $KodeBarang);
+mysqli_stmt_execute($stmt_b);
+
+mysqli_stmt_bind_result($stmt_b, $kodeBarangResult, $namaBarangResult);
+
+mysqli_stmt_fetch($stmt_b);
+
+$row_barang = [
+    'KodeBarang' => $kodeBarangResult,
+    'NamaBarang' => $namaBarangResult
+];
+
+mysqli_stmt_close($stmt_b);
 
 ?>
 <!DOCTYPE html>
