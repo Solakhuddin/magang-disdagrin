@@ -36,42 +36,54 @@ Title : Crud Menggunakan Modal Bootsrap
 									  <tbody>
 										<?php 
 											$no =1;
-											$sql= @mysqli_query($koneksi, "SELECT * FROM fiturlevel WHERE LevelID='$LevelID' AND FiturID='$FiturID'"); 
-											$data = @mysqli_fetch_array($sql);
+											// $sql= @mysqli_query($koneksi, "SELECT * FROM fiturlevel WHERE LevelID='$LevelID' AND FiturID='$FiturID'"); 
+											// $data = @mysqli_fetch_array($sql);
+											$sql = "SELECT * FROM fiturlevel WHERE LevelID=? AND FiturID=?";
+											$stmt = mysqli_prepare($koneksi, $sql);
+											mysqli_stmt_bind_param($stmt, "ii", $LevelID, $FiturID);
+											mysqli_stmt_execute($stmt);
+
+											mysqli_stmt_store_result($stmt);
+
+											mysqli_stmt_bind_result($stmt, $ViewData, $AddData, $EditData, $DeleteData, $PrintData);
+
+											mysqli_stmt_fetch($stmt);
+
+											mysqli_stmt_close($stmt);
 										?>
 										<tr>
 										  <th scope="row"><?php echo $no++; ?></th>
 										  <td>View Data</td>
 										  <td width="50px">
-											 <input type="checkbox" name="ViewData" <?php if(@$data['ViewData']=='1'){ echo 'checked'; } ?> value="1">
+											 <input type="checkbox" name="ViewData" <?php if($ViewData=='1'){ echo 'checked'; } ?> value="1">
 										  </td>
 										</tr>
 										<tr>
 										  <th scope="row"><?php echo $no++; ?></th>
 										  <td>Tambah Data</td>
 										  <td width="50px">
-											 <input type="checkbox" name="AddData" <?php if(@$data['AddData']=='1'){ echo 'checked'; } ?> value="1">
+											 <input type="checkbox" name="AddData" <?php if($AddData=='1'){ echo 'checked'; } ?> value="1">
 										  </td>
 										</tr>
 										<tr>
 										  <th scope="row"><?php echo $no++; ?></th>
 										  <td>Edit Data</td>
 										  <td width="50px">
-											 <input type="checkbox" name="EditData" <?php if(@$data['EditData']=='1'){ echo 'checked'; } ?> value="1">
+											 <input type="checkbox" name="EditData" <?php if($EditData=='1'){ echo 'checked'; } ?> value="1">
 										  </td>
 										</tr>
 										<tr>
 										  <th scope="row"><?php echo $no++; ?></th>
 										  <td>Hapus Data</td>
 										  <td width="50px">
-											 <input type="checkbox" name="DeleteData" <?php if(@$data['DeleteData']=='1'){ echo 'checked'; } ?> value="1">
+											 <input type="checkbox" name="DeleteData" <?php if($DeleteData=='1'){ echo 'checked'; } ?> value="1">
 										  </td>
 										</tr>
 										<tr>
 										  <th scope="row"><?php echo $no++; ?></th>
 										  <td>Print Data</td>
 										  <td width="50px">
-											 <input type="checkbox" name="PrintData" <?php if(@$data['PrintData']=='1'){ echo 'checked'; } ?> value="1">
+											 <input type="checkbox" name="PrintData" <?php if($PrintData=='1'){ echo 'checked'; } ?> value="1">
 											 <input type="hidden" name="LevelID" value="<?php echo $LevelID; ?>"> 
 											 <input type="hidden" name="FiturID" value="<?php echo $FiturID; ?>"> 
 											 <input type="hidden" name="LevelName" value="<?php echo $LevelName; ?>"> 
@@ -85,6 +97,9 @@ Title : Crud Menggunakan Modal Bootsrap
 									<input type="submit" class="btn btn-md btn-success" value="Simpan" name="Setting" />
 								</div>
 								</form>
+								<?php
+									mysqli_stmt_free_result($stmt);
+								?>
 							</div>
 						</div>
 					</div>
