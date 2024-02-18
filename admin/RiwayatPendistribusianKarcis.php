@@ -107,10 +107,42 @@ $Tahun=date('Y');
 											WHERE t.TipeTransaksi='PENGIRIMAN' AND i.JumlahKirim IS NOT NULL";
 										
 										if(@$_REQUEST['keyword']!=null){
-											$sql .= " AND t.TanggalTransaksi LIKE '%".$_REQUEST['keyword']."%'  ";
-										}
+												$sql .= " AND t.TanggalTransaksi LIKE '%".$_REQUEST['keyword']."%'  ";
+											}
 										$sql .=" ORDER BY t.TanggalTransaksi ASC";
-										$result = mysqli_query($koneksi, $sql);
+											
+										// $sql = "SELECT t.NoTransArusKB, t.TanggalTransaksi, t.KodeBatchPencetakan, t.TotalNilaKB, t.UserName, i.JumlahKreditKB, i.TotalNominal, i.NoSeriAwal, i.NoSeriAkhir, i.KodeBatch, i.Keterangan, m.NamaKB, p.NamaPasar, i.JumlahKirim, d.JumlahKB
+										// 		FROM traruskb t
+										// 		JOIN traruskbitem i ON t.NoTransArusKB=i.NoTransArusKB
+										// 		JOIN mstkertasberharga m ON i.KodeKB = m.KodeKB
+										// 		JOIN mstpasar p ON t.KodePasar=p.KodePasar
+										// 		LEFT JOIN (
+										// 			SELECT d.JumlahKB, d.NoTrRequest, d.KodeKB
+										// 			FROM trrequestkbitem d
+										// 			GROUP by d.NoTrRequest, d.KodeKB
+										// 		) d ON d.NoTrRequest = t.NoTrRequest AND d.KodeKB = i.KodeKB
+										// 		WHERE t.TipeTransaksi='PENGIRIMAN' AND i.JumlahKirim IS NOT NULL";
+
+										// if(isset($_REQUEST['keyword']) && !empty($_REQUEST['keyword'])) {
+										// 	$sql .= " AND t.TanggalTransaksi LIKE ?";
+										// }
+
+										// $sql .= " ORDER BY t.TanggalTransaksi ASC";
+										
+										$result = mysqli_query($koneksi,$sql);
+
+										// $stmt = mysqli_prepare($koneksi, $sql);
+										// if(isset($_REQUEST['keyword']) && !empty($_REQUEST['keyword'])) {
+										// 	$keyword = '%' . $_REQUEST['keyword'] . '%';
+										// 	mysqli_stmt_bind_param($stmt, "s", $keyword);
+										// }
+
+										// mysqli_stmt_execute($stmt);
+
+										// $result = mysqli_stmt_get_result($stmt);
+
+
+										// mysqli_stmt_close($stmt);
 										
 										//pagination config start
 										$rpp = 15; // jumlah record per halaman
