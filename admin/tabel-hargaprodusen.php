@@ -37,17 +37,31 @@ $KodePasar = isset($_GET['psr']) ? mysqli_real_escape_string($koneksi,base64_dec
                     <label for="">Pilih Pasar</label>
                     <select name="psr" id="psr" class="form-control">
                         <?php 
+                            // $sql_p = "SELECT * FROM mstpasar ORDER BY NamaPasar ASC";
+                            // $res_p = $koneksi->query($sql_p);
+                            // while ($row_p = $res_p->fetch_assoc()) {
+                            //     if($KodePasar == $row_p['KodePasar']){
+                            //         echo '<option class="form-control" value="'.base64_encode($row_p['KodePasar']).'" selected>'.$row_p['NamaPasar'].'</option>';
+                            //     }else{
+                            //         if(isset($KodePasar) && strlen($KodePasar) < 1){
+                            //             $KodePasar = $row_p['KodePasar'];
+                            //         }
+                            //         echo '<option class="form-control" value="'.base64_encode($row_p['KodePasar']).'">'.$row_p['NamaPasar'].'</option>';
+                            //     }
+                            // }
                             $sql_p = "SELECT * FROM mstpasar ORDER BY NamaPasar ASC";
-                            $res_p = $koneksi->query($sql_p);
-                            while ($row_p = $res_p->fetch_assoc()) {
-                                if($KodePasar == $row_p['KodePasar']){
-                                    echo '<option class="form-control" value="'.base64_encode($row_p['KodePasar']).'" selected>'.$row_p['NamaPasar'].'</option>';
-                                }else{
-                                    if(isset($KodePasar) && strlen($KodePasar) < 1){
-                                        $KodePasar = $row_p['KodePasar'];
+                            if ($res_p = mysqli_query($koneksi, $sql_p)) {
+                                while ($row_p = mysqli_fetch_assoc($res_p)) {
+                                    if ($KodePasar == $row_p['KodePasar']) {
+                                        echo '<option class="form-control" value="' . base64_encode($row_p['KodePasar']) . '" selected>' . $row_p['NamaPasar'] . '</option>';
+                                    } else {
+                                        if (isset($KodePasar) && strlen($KodePasar) < 1) {
+                                            $KodePasar = $row_p['KodePasar'];
+                                        }
+                                        echo '<option class="form-control" value="' . base64_encode($row_p['KodePasar']) . '">' . $row_p['NamaPasar'] . '</option>';
                                     }
-                                    echo '<option class="form-control" value="'.base64_encode($row_p['KodePasar']).'">'.$row_p['NamaPasar'].'</option>';
                                 }
+                                mysqli_free_result($res_p);
                             }
                         ?>
                     </select>
