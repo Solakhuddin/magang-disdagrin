@@ -11,8 +11,24 @@ $DateTime=date('Y-m-d H:i:s');
 $nm = isset($_GET['nm']) && $_GET['nm'] != NULL ? base64_decode($_GET['nm']) : '' ;  
 
 if(@$_GET['id'] !=null){
-	$Edit = mysqli_query($koneksi,"SELECT * FROM lapakpasar WHERE IDLapak='".htmlspecialchars(base64_decode($_GET['id']))."'");
-	$RowData = mysqli_fetch_assoc($Edit);
+	// $Edit = mysqli_query($koneksi,"SELECT * FROM lapakpasar WHERE IDLapak='".htmlspecialchars(base64_decode($_GET['id']))."'");
+	// $RowData = mysqli_fetch_assoc($Edit);
+	$sql = "SELECT * FROM lapakpasar WHERE IDLapak = ?";
+	$stmt = mysqli_prepare($koneksi, $sql);
+
+    mysqli_stmt_bind_param($stmt, "s", $IDLapak);
+
+    $IDLapak = base64_decode($_GET['id']);
+
+    $success = mysqli_stmt_execute($stmt);
+
+    $result = mysqli_stmt_get_result($stmt);
+
+    $RowData = mysqli_fetch_assoc($result);
+
+    mysqli_free_result($result);
+
+    mysqli_stmt_close($stmt);
 }
 ?>
 <!DOCTYPE html>
@@ -464,9 +480,25 @@ if(@$_GET['id'] !=null){
 			$lapak = mysqli_query($koneksi,"SELECT BlokLapak,NomorLapak,Retribusi FROM lapakpasar WHERE IDLapak='$IDLapak' and KodePasar='$KodePasar'");
 			$dat = mysqli_fetch_array($lapak);
 			
-			$query = mysqli_query($koneksi,"INSERT lapakperson (KodePasar,IDLapak,BlokLapak,NomorLapak,NoRekBank,AnRekBank,Keterangan,IDPerson,Retribusi,	IsAktif,TglAktif, Tagihan) 
-			VALUES ('$KodePasar','$IDLapak','".$dat[0]."','".$dat[1]."','$NoRekBank','$AnRekBank','$Keterangan','$IDPerson','0',b'1',NOW(), 0)");
-			if($query){
+			// $query = mysqli_query($koneksi,"INSERT lapakperson (KodePasar,IDLapak,BlokLapak,NomorLapak,NoRekBank,AnRekBank,Keterangan,IDPerson,Retribusi,	IsAktif,TglAktif, Tagihan) 
+			// VALUES ('$KodePasar','$IDLapak','".$dat[0]."','".$dat[1]."','$NoRekBank','$AnRekBank','$Keterangan','$IDPerson','0',b'1',NOW(), 0)");
+			$sql = "INSERT INTO lapakperson (KodePasar, IDLapak, BlokLapak, NomorLapak, NoRekBank, AnRekBank, Keterangan, IDPerson, Retribusi, IsAktif, TglAktif, Tagihan) 
+				VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?)";
+			$stmt = mysqli_prepare($koneksi, $sql);
+
+			$BlokLapak = $dat[0];
+			$NomorLapak = $dat[1];
+			$Retribusi = 0; 
+			$IsAktif = 1; 
+			$Tagihan = 0; 
+
+			mysqli_stmt_bind_param($stmt, "ssssssssss", $KodePasar, $IDLapak, $BlokLapak, $NomorLapak, $NoRekBank, $AnRekBank, $Keterangan, $IDPerson, $Retribusi, $IsAktif, $Tagihan);
+
+			$success = mysqli_stmt_execute($stmt);
+
+
+			mysqli_stmt_close($stmt);
+			if($success){
 				InsertLog($koneksi, 'Tambah Data', 'Menambah Data Lapak Person '.$IDPerson, $login_id, $IDLapak, 'Master Lapak User');
 				echo '<script language="javascript">alert("Data Berhasil Disimpan!");document.location="MasterLapakPerson.php";</script>';
 			}else{
@@ -487,8 +519,21 @@ if(@$_GET['id'] !=null){
 	
 	
 	if(base64_decode(@$_GET['aksi'])=='NonAktif'){
-		$query = mysqli_query($koneksi,"update lapakperson set IsAktif=b'0' WHERE IDLapak='".htmlspecialchars(base64_decode($_GET['id']))."' and IDPerson='".htmlspecialchars(base64_decode($_GET['prs']))."' and KodePasar='".htmlspecialchars(base64_decode($_GET['psr']))."'");
-		if($query){
+		// $query = mysqli_query($koneksi,"update lapakperson set IsAktif=b'0' WHERE IDLapak='".htmlspecialchars(base64_decode($_GET['id']))."' and IDPerson='".htmlspecialchars(base64_decode($_GET['prs']))."' and KodePasar='".htmlspecialchars(base64_decode($_GET['psr']))."'");
+		$sql = "UPDATE lapakperson SET IsAktif = ? WHERE IDLapak = ? AND IDPerson = ? AND KodePasar = ?";
+		$stmt = mysqli_prepare($koneksi, $sql);
+		
+		$IsAktif = 0; 
+		$IDLapak = base64_decode($_GET['id']);
+		$IDPerson = base64_decode($_GET['prs']);
+		$KodePasar = base64_decode($_GET['psr']);
+
+		mysqli_stmt_bind_param($stmt, "ssss", $IsAktif, $IDLapak, $IDPerson, $KodePasar);
+
+		$success = mysqli_stmt_execute($stmt);
+
+		mysqli_stmt_close($stmt);
+		if ($success) {
 			InsertLog($koneksi, 'Edit Data', 'Menghapus Data Master Lapak User'. base64_decode($_GET['prs']), $login_id, base64_decode($_GET['id']), 'Master Lapak User');
 			echo '<script language="javascript">document.location="MasterLapakPerson.php"; </script>';
 		}else{
@@ -507,8 +552,23 @@ if(@$_GET['id'] !=null){
 	}
 	
 	if(base64_decode(@$_GET['aksi'])=='Aktif'){
-		$query = mysqli_query($koneksi,"update lapakperson set IsAktif=b'1' WHERE IDLapak='".htmlspecialchars(base64_decode($_GET['id']))."' and IDPerson='".htmlspecialchars(base64_decode($_GET['prs']))."' and KodePasar='".htmlspecialchars(base64_decode($_GET['psr']))."'");
-		if($query){
+		// $query = mysqli_query($koneksi,"update lapakperson set IsAktif=b'1' WHERE IDLapak='".htmlspecialchars(base64_decode($_GET['id']))."' and IDPerson='".htmlspecialchars(base64_decode($_GET['prs']))."' and KodePasar='".htmlspecialchars(base64_decode($_GET['psr']))."'");
+		$sql = "UPDATE lapakperson SET IsAktif = ? WHERE IDLapak = ? AND IDPerson = ? AND KodePasar = ?";
+		$stmt = mysqli_prepare($koneksi, $sql);
+
+		$IsAktif = 1; 
+		$IDLapak = base64_decode($_GET['id']);
+		$IDPerson = base64_decode($_GET['prs']);
+		$KodePasar = base64_decode($_GET['psr']);
+
+		mysqli_stmt_bind_param($stmt, "ssss", $IsAktif, $IDLapak, $IDPerson, $KodePasar);
+
+
+		$success = mysqli_stmt_execute($stmt);
+
+		mysqli_stmt_close($stmt);
+		
+		if ($success) {
 			InsertLog($koneksi, 'Edit Data', 'Menghapus Data Master Lapak User'. base64_decode($_GET['prs']), $login_id, base64_decode($_GET['id']), 'Master Lapak User');
 			echo '<script language="javascript">document.location="MasterLapakPerson.php"; </script>';
 		}else{
