@@ -10,14 +10,33 @@ $Tanggal = date('Ymd');
 if(@$_GET['id']!=null){
 	$NoTrRequest = mysqli_escape_string($koneksi, base64_decode($_GET['id']));
 
+	// $sql = "SELECT t.NoTrRequest, t.TanggalRequest, t.KeteranganRequest, t.IsRealisasi, t.NoTrRealisasi, t.UserName, t.KodePasar, t.TotalNilaiKB, p.NamaPasar 
+	// FROM trrequestkb t
+	// JOIN mstpasar p ON t.KodePasar=p.KodePasar
+	// WHERE t.NoTrRequest = '$NoTrRequest'";
+	// $res = $koneksi->query($sql);
+	// if(mysqli_num_rows($res) > 0){
+	// 	$row = mysqli_fetch_assoc($res);
+	// }
+	// Prepare the SQL statement
 	$sql = "SELECT t.NoTrRequest, t.TanggalRequest, t.KeteranganRequest, t.IsRealisasi, t.NoTrRealisasi, t.UserName, t.KodePasar, t.TotalNilaiKB, p.NamaPasar 
-	FROM trrequestkb t
-	JOIN mstpasar p ON t.KodePasar=p.KodePasar
-	WHERE t.NoTrRequest = '$NoTrRequest'";
-	$res = $koneksi->query($sql);
-	if(mysqli_num_rows($res) > 0){
-		$row = mysqli_fetch_assoc($res);
-	}
+			FROM trrequestkb t
+			JOIN mstpasar p ON t.KodePasar=p.KodePasar
+			WHERE t.NoTrRequest = ?";	
+
+	$stmt = mysqli_prepare($koneksi, $sql);
+    mysqli_stmt_bind_param($stmt, "s", $NoTrRequest);
+
+    mysqli_stmt_execute($stmt);
+
+    $result = mysqli_stmt_get_result($stmt);
+
+    if (mysqli_num_rows($result) > 0) {
+        $row = mysqli_fetch_assoc($result);
+    }
+
+    mysqli_stmt_close($stmt);
+
 }
 
 ?>
@@ -160,18 +179,41 @@ if(@$_GET['id']!=null){
 														<select id="comboKB<?=$no?>" name="NoTransArusKB[]" class="form-control"  onchange="previewData(<?=$no?>)" required>
 														<option value="">Pilih Jenis Kode Seri</option>	
 														<?php
-															$menu = mysqli_query($koneksi,"SELECT i.NoTransArusKB, i.NoUrut, i.KodeBatch, i.JumlahDebetKB, i.TotalNominal, i.NoSeriAwal, i.NoSeriAkhir, i.KodeKB, t.KodeBatchPencetakan, IFNULL(d.TotalKeluar, 0)  TotalKeluar 
-																FROM traruskbitem i 
-																JOIN traruskb t ON i.NoTransArusKB = t.NoTransArusKB
-																LEFT JOIN (
-																	SELECT IFNULL(SUM(d.JumlahDebetKB), 0)-IFNULL(SUM(d.JumlahKreditKB), 0) as TotalKeluar,d.KodeBatch, d.KodeKB
-																	FROM traruskbitem d
-																	GROUP by d.KodeKB, d.KodeBatch
-																) d ON d.KodeKB = i.KodeKB  AND d.KodeBatch=i.KodeBatch
-																WHERE  t.TipeTransaksi='PENCETAKAN' AND i.KodeKB='".$data['KodeKB']."' AND  TotalKeluar > 0");
-															while($kode = mysqli_fetch_array($menu)){
+															// $menu = mysqli_query($koneksi,"SELECT i.NoTransArusKB, i.NoUrut, i.KodeBatch, i.JumlahDebetKB, i.TotalNominal, i.NoSeriAwal, i.NoSeriAkhir, i.KodeKB, t.KodeBatchPencetakan, IFNULL(d.TotalKeluar, 0)  TotalKeluar 
+															// 	FROM traruskbitem i 
+															// 	JOIN traruskb t ON i.NoTransArusKB = t.NoTransArusKB
+															// 	LEFT JOIN (
+															// 		SELECT IFNULL(SUM(d.JumlahDebetKB), 0)-IFNULL(SUM(d.JumlahKreditKB), 0) as TotalKeluar,d.KodeBatch, d.KodeKB
+															// 		FROM traruskbitem d
+															// 		GROUP by d.KodeKB, d.KodeBatch
+															// 	) d ON d.KodeKB = i.KodeKB  AND d.KodeBatch=i.KodeBatch
+															// 	WHERE  t.TipeTransaksi='PENCETAKAN' AND i.KodeKB='".$data['KodeKB']."' AND  TotalKeluar > 0");
+															// while($kode = mysqli_fetch_array($menu)){
+															// 	echo '<option value="'.$kode['NoTransArusKB'].'" data-nourut="'.$kode['NoUrut'].'" data-jumlah="'.$kode['JumlahDebetKB'].'" data-total="'.$data['TotalNominal'].'" data-awal="'.$kode['NoSeriAwal'].'" data-akhir="'.$kode['NoSeriAkhir'].'" data-kodekb="'.$kode['KodeKB'].'" data-batch="'.$kode['KodeBatchPencetakan'].'" data-stok="'.$kode['TotalKeluar'].'">'.$kode['KodeBatchPencetakan'].'</option>';
+															// }
+															// Prepare the SQL statement
+															$sql = "SELECT i.NoTransArusKB, i.NoUrut, i.KodeBatch, i.JumlahDebetKB, i.TotalNominal, i.NoSeriAwal, i.NoSeriAkhir, i.KodeKB, t.KodeBatchPencetakan, IFNULL(d.TotalKeluar, 0) AS TotalKeluar 
+																	FROM traruskbitem i 
+																	JOIN traruskb t ON i.NoTransArusKB = t.NoTransArusKB
+																	LEFT JOIN (
+																		SELECT IFNULL(SUM(d.JumlahDebetKB), 0) - IFNULL(SUM(d.JumlahKreditKB), 0) AS TotalKeluar, d.KodeBatch, d.KodeKB
+																		FROM traruskbitem d
+																		GROUP BY d.KodeKB, d.KodeBatch
+																	) d ON d.KodeKB = i.KodeKB  AND d.KodeBatch = i.KodeBatch
+																	WHERE t.TipeTransaksi = 'PENCETAKAN' AND i.KodeKB = ? AND TotalKeluar > 0";
+
+															$stmt = mysqli_prepare($koneksi, $sql);
+															mysqli_stmt_bind_param($stmt, "s", $data['KodeKB']);
+
+															mysqli_stmt_execute($stmt);
+
+															$result = mysqli_stmt_get_result($stmt);
+
+															while ($kode = mysqli_fetch_array($result)) {
 																echo '<option value="'.$kode['NoTransArusKB'].'" data-nourut="'.$kode['NoUrut'].'" data-jumlah="'.$kode['JumlahDebetKB'].'" data-total="'.$data['TotalNominal'].'" data-awal="'.$kode['NoSeriAwal'].'" data-akhir="'.$kode['NoSeriAkhir'].'" data-kodekb="'.$kode['KodeKB'].'" data-batch="'.$kode['KodeBatchPencetakan'].'" data-stok="'.$kode['TotalKeluar'].'">'.$kode['KodeBatchPencetakan'].'</option>';
 															}
+
+															mysqli_stmt_close($stmt);
 														?>
 													    </select>
 													    <input type="hidden" name="NoUrut[]" id="NoUrut<?=$no?>">
