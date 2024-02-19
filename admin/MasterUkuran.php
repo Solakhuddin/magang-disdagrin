@@ -18,9 +18,25 @@ if(@$_GET['id']==null){
 	$Sebutan = 'Data UTTP';	
 	$Readonly = 'readonly';
 	
-	@$Edit = mysqli_query($koneksi,"SELECT * FROM detilukuran WHERE KodeUkuran='".htmlspecialchars(base64_decode($_GET['id']))."'");
-	@$RowData = mysqli_fetch_assoc($Edit);
-	@$res = explode("#", $RowData['JenisPerson']);
+	// @$Edit = mysqli_query($koneksi,"SELECT * FROM detilukuran WHERE KodeUkuran='".htmlspecialchars(base64_decode($_GET['id']))."'");
+	// @$RowData = mysqli_fetch_assoc($Edit);
+	// @$res = explode("#", $RowData['JenisPerson']);
+
+	$decoded_id = base64_decode($_GET['id']);
+
+	$query = mysqli_prepare($koneksi, "SELECT * FROM detilukuran WHERE KodeUkuran=?");
+
+    mysqli_stmt_bind_param($query, "s", $decoded_id);
+
+    mysqli_stmt_execute($query);
+
+    $result = mysqli_stmt_get_result($query);
+
+    $row_data = mysqli_fetch_assoc($result);
+
+    $res = explode("#", $row_data['JenisPerson']);
+
+    mysqli_stmt_close($query);
 }
 ?>
 <!DOCTYPE html>
@@ -354,9 +370,16 @@ if(@$_GET['id']==null){
 		 $kodeukur = "UKR-".$bikin_kode1;
 		
 		
-		$query1 = mysqli_query($koneksi,"INSERT into detilukuran(KodeTimbangan,KodeKelas,KodeUkuran,NamaUkuran,RetribusiDikantor,RetribusiDiLokasi,NilaiBawah,NilaiTambah, 	RetPenambahanDikantor,RetPenambahanDiLokasi) VALUES ('$KodeUTTP','$KodeKelas','$kodeukur','$NamaUkuran','$RetribusiDikantor','$RetribusiDiLokasi','$NilaiTambah','$NilaiTambah','$RetPenambahanDikantor','$RetPenambahanDiLokasi')");
-				
-		if ($query1){
+		// $query1 = mysqli_query($koneksi,"INSERT into detilukuran(KodeTimbangan,KodeKelas,KodeUkuran,NamaUkuran,RetribusiDikantor,RetribusiDiLokasi,NilaiBawah,NilaiTambah, 	RetPenambahanDikantor,RetPenambahanDiLokasi) VALUES ('$KodeUTTP','$KodeKelas','$kodeukur','$NamaUkuran','$RetribusiDikantor','$RetribusiDiLokasi','$NilaiTambah','$NilaiTambah','$RetPenambahanDikantor','$RetPenambahanDiLokasi')");
+		$query = mysqli_prepare($koneksi, "INSERT INTO detilukuran (KodeTimbangan, KodeKelas, KodeUkuran, NamaUkuran, RetribusiDikantor, RetribusiDiLokasi, NilaiBawah, NilaiTambah, RetPenambahanDikantor, RetPenambahanDiLokasi) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+
+		mysqli_stmt_bind_param($query, "ssssssssss", $KodeUTTP, $KodeKelas, $kodeukur, $NamaUkuran, $RetribusiDikantor, $RetribusiDiLokasi, $NilaiTambah, $NilaiTambah, $RetPenambahanDikantor, $RetPenambahanDiLokasi);
+
+		$cek = mysqli_stmt_execute($query);
+
+		mysqli_stmt_close($query);
+
+		if ($cek){
 			InsertLog($koneksi, 'Tambah Data', 'Menambah Master Data Ukuran Timbangan dengan nama '.$NamaUkuran, $login_id, $kodeukur, 'Master Data');
 			echo '<script language="javascript">document.location="MasterUkuran.php?kd='.base64_encode($KodeUTTP).'&nm='.$NamaUTTP.'";</script>';
 		}else{
@@ -374,9 +397,17 @@ if(@$_GET['id']==null){
 	}
 	
 	if(isset($_POST['SimpanEdit'])){
-		$query = mysqli_query($koneksi,"UPDATE detilukuran SET NamaUkuran='$NamaUkuran', RetribusiDikantor='$RetribusiDikantor', RetribusiDiLokasi='$RetribusiDiLokasi', NilaiBawah='$NilaiTambah', NilaiTambah='$NilaiTambah', RetPenambahanDikantor='$RetPenambahanDikantor', RetPenambahanDiLokasi='$RetPenambahanDiLokasi' WHERE KodeTimbangan='$KodeUTTP' and KodeKelas='$KodeKelas' and KodeUkuran='$KodeUkuran' ");
+		// $query = mysqli_query($koneksi,"UPDATE detilukuran SET NamaUkuran='$NamaUkuran', RetribusiDikantor='$RetribusiDikantor', RetribusiDiLokasi='$RetribusiDiLokasi', NilaiBawah='$NilaiTambah', NilaiTambah='$NilaiTambah', RetPenambahanDikantor='$RetPenambahanDikantor', RetPenambahanDiLokasi='$RetPenambahanDiLokasi' WHERE KodeTimbangan='$KodeUTTP' and KodeKelas='$KodeKelas' and KodeUkuran='$KodeUkuran' ");
 		
-			if($query){
+			$query = mysqli_prepare($koneksi, "UPDATE detilukuran SET NamaUkuran=?, RetribusiDikantor=?, RetribusiDiLokasi=?, NilaiBawah=?, NilaiTambah=?, RetPenambahanDikantor=?, RetPenambahanDiLokasi=? WHERE KodeTimbangan=? AND KodeKelas=? AND KodeUkuran=?");
+
+			mysqli_stmt_bind_param($query, "sssssssss", $NamaUkuran, $RetribusiDikantor, $RetribusiDiLokasi, $NilaiTambah, $NilaiTambah, $RetPenambahanDikantor, $RetPenambahanDiLokasi, $KodeUTTP, $KodeKelas, $KodeUkuran);
+
+			$cek = mysqli_stmt_execute($query);
+
+			mysqli_stmt_close($query);
+
+			if($cek){
 				InsertLog($koneksi, 'Edit Data', 'Mengubah Master Data Ukuran Timbangan dengan nama '.$NamaUkuran, $login_id, $KodeUkuran, 'Master Data');
 				echo $KodeTimbangan;
 				echo '<script type="text/javascript">
@@ -404,8 +435,20 @@ if(@$_GET['id']==null){
 	}
 	
 	if(base64_decode(@$_GET['aksi'])=='Hapus'){
-		$query = mysqli_query($koneksi,"DELETE FROM detilukuran WHERE KodeUkuran='".htmlspecialchars(base64_decode($_GET['id']))."' AND KodeKelas='".htmlspecialchars(base64_decode($_GET['kl']))."' AND KodeTimbangan='".htmlspecialchars(base64_decode($_GET['cd']))."'");
-			if($query){
+		// $query = mysqli_query($koneksi,"DELETE FROM detilukuran WHERE KodeUkuran='".htmlspecialchars(base64_decode($_GET['id']))."' AND KodeKelas='".htmlspecialchars(base64_decode($_GET['kl']))."' AND KodeTimbangan='".htmlspecialchars(base64_decode($_GET['cd']))."'");
+			$query = mysqli_prepare($koneksi, "DELETE FROM detilukuran WHERE KodeUkuran=? AND KodeKelas=? AND KodeTimbangan=?");
+
+			$decoded_id = base64_decode($_GET['id']);
+			$decoded_kl = base64_decode($_GET['kl']);
+			$decoded_cd = base64_decode($_GET['cd']);
+
+			mysqli_stmt_bind_param($query, "sss", $decoded_id, $decoded_kl, $decoded_cd);
+
+			$cek = mysqli_stmt_execute($query);
+
+			mysqli_stmt_close($query);
+
+			if($cek){
 				
 				InsertLog($koneksi, 'Hapus Data', 'Menghapus Master Data Ukuran Timbangan dengan nama '.@$_GET['nm'], $login_id, base64_decode(@$_GET['id']), 'Master Data');
 				echo '<script language="javascript">document.location="MasterUkuran.php?kd='.$_GET['cd'].'&nm='.base64_encode($_GET['nm']).'"; </script>';
