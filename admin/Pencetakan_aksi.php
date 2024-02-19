@@ -23,21 +23,52 @@ if(isset($_POST['SimpanData'])){
 	$Tanggal 			  = date('Ymd');
 	@$TanggalCetak		  = $TanggalTransaksi.' '.$WaktuTransaksi;
 
-	$sql = @mysqli_query($koneksi, "SELECT RIGHT(NoTransArusKB,8) AS kode FROM traruskb ORDER BY NoTransArusKB DESC LIMIT 1"); 
-	$nums = mysqli_num_rows($sql);
-	if($nums <> 0){
-		 $data = mysqli_fetch_array($sql);
-		 $kode = $data['kode'] + 1;
-	}else{
-		 $kode = 1;
-	}
+	// $sql = @mysqli_query($koneksi, "SELECT RIGHT(NoTransArusKB,8) AS kode FROM traruskb ORDER BY NoTransArusKB DESC LIMIT 1"); 
+	// $nums = mysqli_num_rows($sql);
+	// if($nums <> 0){
+	// 	 $data = mysqli_fetch_array($sql);
+	// 	 $kode = $data['kode'] + 1;
+	// }else{
+	// 	 $kode = 1;
+	// }
+
+	$query = "SELECT RIGHT(NoTransArusKB, 8) AS kode FROM traruskb ORDER BY NoTransArusKB DESC LIMIT 1";
+
+	$stmt = mysqli_prepare($koneksi, $query);
+    mysqli_stmt_execute($stmt);
+    
+    mysqli_stmt_store_result($stmt);
+
+    $nums = mysqli_stmt_num_rows($stmt);
+
+    if ($nums != 0) {
+        mysqli_stmt_bind_result($stmt, $kode);
+        
+        mysqli_stmt_fetch($stmt);
+        
+        $kode++;
+    } else {
+        $kode = 1;
+    }
+    mysqli_stmt_close($stmt);
+
 	//mulai bikin kode
 	 $bikin_kode = str_pad($kode, 8, "0", STR_PAD_LEFT);
 	 $kode_jadi = "TRK-".$Tanggal."-".$bikin_kode;
 
-	 $SimpanData = @mysqli_query($koneksi, "INSERT INTO traruskb (NoTransArusKB,TanggalTransaksi,TipeTransaksi,KodeBatchPencetakan,TotalNilaKB,UserName,Keterangan)VALUES('$kode_jadi','$TanggalCetak','$TipeTransaksi', '$KodeBatchPencetakan','$TotalNilaKB', '$UserName', '$Keterangan')"); 
+	//  $SimpanData = @mysqli_query($koneksi, "INSERT INTO traruskb (NoTransArusKB,TanggalTransaksi,TipeTransaksi,KodeBatchPencetakan,TotalNilaKB,UserName,Keterangan)VALUES('$kode_jadi','$TanggalCetak','$TipeTransaksi', '$KodeBatchPencetakan','$TotalNilaKB', '$UserName', '$Keterangan')"); 
 
-	if($SimpanData){
+	$query = "INSERT INTO traruskb (NoTransArusKB, TanggalTransaksi, TipeTransaksi, KodeBatchPencetakan, TotalNilaKB, UserName, Keterangan) VALUES (?, ?, ?, ?, ?, ?, ?)";
+
+	$stmt = mysqli_prepare($koneksi, $query);
+
+    mysqli_stmt_bind_param($stmt, "ssssdss", $kode_jadi, $TanggalCetak, $TipeTransaksi, $KodeBatchPencetakan, $TotalNilaKB, $UserName, $Keterangan);
+
+    $cek = mysqli_stmt_execute($stmt);
+
+    mysqli_stmt_close($stmt);
+
+	if($cek){
 
 		 for ($i=0; $i < sizeof($_POST['KodeKB']); $i++) {
 
@@ -50,10 +81,19 @@ if(isset($_POST['SimpanData'])){
 			$Keterangan   	=$_POST["Keterangan"][$i];
 			$NoUrut 		=($i+1);
 				
-            $DataItem = @mysqli_query($koneksi, "INSERT INTO traruskbitem (NoTransArusKB,NoUrut,KodeKB,JumlahDebetKB,TotalNominal,NoSeriAwal,NoSeriAkhir,Keterangan,KodeBatch)VALUES('$kode_jadi','$NoUrut','$KodeKB','$JumlahDebetKB','$TotalNominal','$NoSeriAwal','$NoSeriAkhir','$Keterangan', '$KodeBatchPencetakan')"); 
-        }
+            // $DataItem = @mysqli_query($koneksi, "INSERT INTO traruskbitem (NoTransArusKB,NoUrut,KodeKB,JumlahDebetKB,TotalNominal,NoSeriAwal,NoSeriAkhir,Keterangan,KodeBatch)VALUES('$kode_jadi','$NoUrut','$KodeKB','$JumlahDebetKB','$TotalNominal','$NoSeriAwal','$NoSeriAkhir','$Keterangan', '$KodeBatchPencetakan')"); 
+			
+			$query = "INSERT INTO traruskbitem (NoTransArusKB, NoUrut, KodeKB, JumlahDebetKB, TotalNominal, NoSeriAwal, NoSeriAkhir, Keterangan, KodeBatch) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
-        if($DataItem){
+			$stmt = mysqli_prepare($koneksi, $query);
+			mysqli_stmt_bind_param($stmt, "sssssssss", $kode_jadi, $NoUrut, $KodeKB, $JumlahDebetKB, $TotalNominal, $NoSeriAwal, $NoSeriAkhir, $Keterangan, $KodeBatchPencetakan);
+
+			$cek = mysqli_stmt_execute($stmt);
+
+			mysqli_stmt_close($stmt);
+		}
+
+        if($cek){
 			echo '<script language="javascript">alert("Data Berhasil Disimpan!"); document.location="Pencetakan.php"; </script>';
 		}else{
 			echo '<script language="javascript">alert(Data Gagal Disimpan!"); document.location="Pencetakan.php"; </script>';
@@ -233,23 +273,66 @@ if($_POST['aksi'] == 'Edit'){
 }
 
 function CekTransaksi($conn, $NoTransArusKB){
-	$sql = "SELECT COUNT(NoTransArusKB) AS Jumlah FROM traruskbitem WHERE NoTransArusKB = '$NoTransArusKB' AND Keterangan = 'Sudah Dipakai'";
-	$res = $conn->query($sql);
-	if(mysqli_num_rows($res) > 0){
-		$row = mysqli_fetch_assoc($res);
-		return $row['Jumlah'] > 0 ? false : true;
-	}else{
+	// $sql = "SELECT COUNT(NoTransArusKB) AS Jumlah FROM traruskbitem WHERE NoTransArusKB = '$NoTransArusKB' AND Keterangan = 'Sudah Dipakai'";
+	// $res = $conn->query($sql);
+	// if(mysqli_num_rows($res) > 0){
+	// 	$row = mysqli_fetch_assoc($res);
+	// 	return $row['Jumlah'] > 0 ? false : true;
+	// }else{
+	// 	return true;
+	// }
+	
+	$sql = "SELECT COUNT(NoTransArusKB) AS Jumlah FROM traruskbitem WHERE NoTransArusKB = ? AND Keterangan = 'Sudah Dipakai'";
+
+	if ($stmt = mysqli_prepare($conn, $sql)) {
+		mysqli_stmt_bind_param($stmt, "s", $NoTransArusKB);
+
+		mysqli_stmt_execute($stmt);
+
+		mysqli_stmt_bind_result($stmt, $Jumlah);
+
+		mysqli_stmt_fetch($stmt);
+
+		mysqli_stmt_close($stmt);
+
+		if ($Jumlah > 0) {
+			return false;
+		} else {
+			return true;
+		}
+	} else {
 		return true;
 	}
 }
 
 function HapusKertas($conn, $NoTransArusKB){
-	$sqlitem = "DELETE FROM traruskbitem WHERE NoTransArusKB = '$NoTransArusKB'";
-	$item = $conn->query($sqlitem);
-	if($item){
-		$sql = "DELETE FROM traruskb WHERE NoTransArusKB = '$NoTransArusKB'";
-		return $conn->query($sql);
+	// $sqlitem = "DELETE FROM traruskbitem WHERE NoTransArusKB = '$NoTransArusKB'";
+	// $item = $conn->query($sqlitem);
+	// if($item){
+	// 	$sql = "DELETE FROM traruskb WHERE NoTransArusKB = '$NoTransArusKB'";
+	// 	$conn->query($sql);
+	// 	return $conn->query($sql);
+	// }
+	$sqlitem = "DELETE FROM traruskbitem WHERE NoTransArusKB = ?";
+	$stmt = mysqli_prepare($conn, $sqlitem);
+    mysqli_stmt_bind_param($stmt, "s", $NoTransArusKB);
+
+    $cek = mysqli_stmt_execute($stmt);
+
+    mysqli_stmt_close($stmt);
+
+	$sql = "DELETE FROM traruskb WHERE NoTransArusKB = ?";
+	if ($cek) {
+		$stmt = mysqli_prepare($conn, $sql);
+		mysqli_stmt_bind_param($stmt, "s", $NoTransArusKB);
+
+		$hasil = mysqli_stmt_execute($stmt);
+
+		mysqli_stmt_close($stmt);
+
+		return $hasil;
 	}
+
 }
 
 function CekTransaksiItem($conn, $NoTransArusKB, $NoUrut){
@@ -264,34 +347,90 @@ function CekTransaksiItem($conn, $NoTransArusKB, $NoUrut){
 }
 
 function HapusKertasItem($conn, $NoTransArusKB, $NoUrut){
-	$sqlitem = "DELETE FROM traruskbitem WHERE NoTransArusKB = '$NoTransArusKB' AND NoUrut ='$NoUrut'  AND Keterangan != 'Sudah Dipakai' ";
-	return $conn->query($sqlitem);
+	// $sqlitem = "DELETE FROM traruskbitem WHERE NoTransArusKB = '$NoTransArusKB' AND NoUrut ='$NoUrut'  AND Keterangan != 'Sudah Dipakai' ";
+	// $conn->query($sqlitem);
+	$sqlitem = "DELETE FROM traruskbitem WHERE NoTransArusKB = ? AND NoUrut = ? AND Keterangan != 'Sudah Dipakai'";
+	$stmt = mysqli_prepare($conn, $sqlitem);
+    mysqli_stmt_bind_param($stmt, "ss", $NoTransArusKB, $NoUrut);
+
+    $hasil = mysqli_stmt_execute($stmt);
+
+    mysqli_stmt_close($stmt);
+
+	return $hasil;
 }
 
 function EditItem($conn, $NoTransArusKB, $NoUrut, $KodeKB, $JumlahDebetKB, $KodeBatch, $NoSeriAwal, $NoSeriAkhir, $TotalNominal){
-	$sqlitem = "UPDATE traruskbitem SET KodeKB='$KodeKB', JumlahDebetKB='$JumlahDebetKB', KodeBatch='$KodeBatch', NoSeriAwal='$NoSeriAwal', NoSeriAkhir='$NoSeriAkhir', TotalNominal='$TotalNominal' WHERE NoTransArusKB = '$NoTransArusKB' AND NoUrut='$NoUrut'";
-	return $conn->query($sqlitem);
+	// $sqlitem = "UPDATE traruskbitem SET KodeKB='$KodeKB', JumlahDebetKB='$JumlahDebetKB', KodeBatch='$KodeBatch', NoSeriAwal='$NoSeriAwal', NoSeriAkhir='$NoSeriAkhir', TotalNominal='$TotalNominal' WHERE NoTransArusKB = '$NoTransArusKB' AND NoUrut='$NoUrut'";
+	// $conn->query($sqlitem);
+	$sqlitem = "UPDATE traruskbitem SET KodeKB=?, JumlahDebetKB=?, KodeBatch=?, NoSeriAwal=?, NoSeriAkhir=?, TotalNominal=? WHERE NoTransArusKB = ? AND NoUrut=?";
+
+	$stmt = mysqli_prepare($conn, $sqlitem);
+    mysqli_stmt_bind_param($stmt, "ssssssss", $KodeKB, $JumlahDebetKB, $KodeBatch, $NoSeriAwal, $NoSeriAkhir, $TotalNominal, $NoTransArusKB, $NoUrut);
+
+    $hasil = mysqli_stmt_execute($stmt);
+
+    mysqli_stmt_close($stmt);
+	return $hasil;
 }
 
 function HitungTotalNilaiKB($conn, $NoTransArusKB){
-	$sql = "SELECT IFNULL(SUM(TotalNominal), 0) AS Jumlah FROM traruskbitem WHERE NoTransArusKB = '$NoTransArusKB'";
-	$res = $conn->query($sql);
-	if(mysqli_num_rows($res) > 0){
-		$row = mysqli_fetch_assoc($res);
-		return $row['Jumlah'];
-	}else{
+	// $sql = "SELECT IFNULL(SUM(TotalNominal), 0) AS Jumlah FROM traruskbitem WHERE NoTransArusKB = '$NoTransArusKB'";
+	// $res = $conn->query($sql);
+	// if(mysqli_num_rows($res) > 0){
+	// 	$row = mysqli_fetch_assoc($res);
+	// 	return $row['Jumlah'];
+	// }else{
+	// 	return 0;
+	// }
+	$sql = "SELECT IFNULL(SUM(TotalNominal), 0) AS Jumlah FROM traruskbitem WHERE NoTransArusKB = ?";
+
+	if ($stmt = mysqli_prepare($conn, $sql)) {
+		mysqli_stmt_bind_param($stmt, "s", $NoTransArusKB);
+
+		mysqli_stmt_execute($stmt);
+
+		mysqli_stmt_bind_result($stmt, $Jumlah);
+
+		mysqli_stmt_fetch($stmt);
+
+		mysqli_stmt_close($stmt);
+
+		return $Jumlah;
+	} else {
 		return 0;
 	}
 }
 
 function UpdateTransaksiArusKB($conn, $NoTransArusKB, $Value, $Table){
-	$sqlitem = "UPDATE traruskb SET $Table='$Value' WHERE NoTransArusKB = '$NoTransArusKB'";
-	return $conn->query($sqlitem);
+	// $sqlitem = "UPDATE traruskb SET $Table='$Value' WHERE NoTransArusKB = '$NoTransArusKB'";
+	// return $conn->query($sqlitem);
+	$sqlitem = "UPDATE traruskb SET $Table=? WHERE NoTransArusKB = ?";
+
+	$stmt = mysqli_prepare($conn, $sqlitem);
+    mysqli_stmt_bind_param($stmt, "ss", $Value, $NoTransArusKB);
+
+    $result = mysqli_stmt_execute($stmt);
+
+    mysqli_stmt_close($stmt);
+
+    return $result;
 }
 
 function UpdateTransaksiArus($conn, $NoTransArusKB, $TanggalTransaksi, $Keterangan, $KodeBatchPencetakan){
-	$sqlitem = "UPDATE traruskb SET TanggalTransaksi='$TanggalTransaksi', Keterangan='$Keterangan', KodeBatchPencetakan='$KodeBatchPencetakan' WHERE NoTransArusKB = '$NoTransArusKB'";
-	return $conn->query($sqlitem);
+	// $sqlitem = "UPDATE traruskb SET TanggalTransaksi='$TanggalTransaksi', Keterangan='$Keterangan', KodeBatchPencetakan='$KodeBatchPencetakan' WHERE NoTransArusKB = '$NoTransArusKB'";
+	// return $conn->query($sqlitem);
+	// Prepare the SQL statement
+	$sqlitem = "UPDATE traruskb SET TanggalTransaksi=?, Keterangan=?, KodeBatchPencetakan=? WHERE NoTransArusKB = ?";
+
+	$stmt = mysqli_prepare($conn, $sqlitem);
+    mysqli_stmt_bind_param($stmt, "ssss", $TanggalTransaksi, $Keterangan, $KodeBatchPencetakan, $NoTransArusKB);
+
+    $result = mysqli_stmt_execute($stmt);
+
+    mysqli_stmt_close($stmt);
+
+    return $result;
 }
 
 
