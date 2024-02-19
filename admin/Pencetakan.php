@@ -11,8 +11,37 @@ if(@$_GET['id']!=null){
 	$Sebutan = 'Data Penerimaan Timbangan';	
 	$Readonly = 'readonly';
 	
-	@$Edit = mysqli_query($koneksi,"SELECT a.NamaPerson,b.IDPerson,b.NoTransaksi,c.IDTimbangan,b.TglTransaksi,b.Keterangan FROM mstperson a join tractiontimbangan b on a.IDPerson=b.IDPerson left join trtimbanganitem c on b.NoTransaksi=c.NoTransaksi WHERE b.NoTransaksi='".htmlspecialchars(base64_decode($_GET['id']))."'");
-	@$RowData = mysqli_fetch_assoc($Edit);
+	// @$Edit = mysqli_query($koneksi,"SELECT a.NamaPerson,b.IDPerson,b.NoTransaksi,c.IDTimbangan,b.TglTransaksi,b.Keterangan FROM mstperson a join tractiontimbangan b on a.IDPerson=b.IDPerson left join trtimbanganitem c on b.NoTransaksi=c.NoTransaksi WHERE b.NoTransaksi='".htmlspecialchars(base64_decode($_GET['id']))."'");
+	// @$RowData = mysqli_fetch_assoc($Edit);
+	
+	$id = base64_decode($_GET['id']);
+
+	$query = "SELECT a.NamaPerson, b.IDPerson, b.NoTransaksi, c.IDTimbangan, b.TglTransaksi, b.Keterangan
+			FROM mstperson a
+			JOIN tractiontimbangan b ON a.IDPerson = b.IDPerson
+			LEFT JOIN trtimbanganitem c ON b.NoTransaksi = c.NoTransaksi
+			WHERE b.NoTransaksi=?";
+			
+	$stmt = mysqli_prepare($koneksi, $query);
+    mysqli_stmt_bind_param($stmt, "s", $id);
+    
+    mysqli_stmt_execute($stmt);
+    
+    mysqli_stmt_bind_result($stmt, $NamaPerson, $IDPerson, $NoTransaksi, $IDTimbangan, $TglTransaksi, $Keterangan);
+    
+    mysqli_stmt_fetch($stmt);
+    
+    mysqli_stmt_close($stmt);
+
+	$RowData = array(
+		'NamaPerson' => $NamaPerson,
+		'IDPerson' => $IDPerson,
+		'NoTransaksi' => $NoTransaksi,
+		'IDTimbangan' => $IDTimbangan,
+		'TglTransaksi' => $TglTransaksi,
+		'Keterangan' => $Keterangan
+	);
+
 }else{
 	$Sebutan = 'Tambah Data';	
 }
