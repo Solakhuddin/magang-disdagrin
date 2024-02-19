@@ -14,9 +14,24 @@ if(@$_GET['id']==null){
 	$Sebutan = 'Edit Data';	
 	$Readonly = 'readonly';
 	
-	@$Edit = mysqli_query($koneksi,"SELECT * FROM mstperson WHERE IDPerson='".base64_decode($_GET['id'])."'");
-	@$RowData = mysqli_fetch_assoc($Edit);
-	@$res = explode("#", $RowData['JenisPerson']);
+	// @$Edit = mysqli_query($koneksi,"SELECT * FROM mstperson WHERE IDPerson='".base64_decode($_GET['id'])."'");
+	// @$RowData = mysqli_fetch_assoc($Edit);
+	// @$res = explode("#", $RowData['JenisPerson']);
+    $decoded_id = base64_decode($_GET['id']);
+
+	$query = mysqli_prepare($koneksi, "SELECT * FROM mstperson WHERE IDPerson=?");
+
+    mysqli_stmt_bind_param($query, "s", $decoded_id);
+
+    mysqli_stmt_execute($query);
+
+	$result = mysqli_stmt_get_result($query);
+
+	$RowData = mysqli_fetch_assoc($result);
+
+    $res = explode("#", $RowData['JenisPerson']); 
+
+    mysqli_stmt_close($query);
 }
 ?>
 <!DOCTYPE html>
@@ -709,8 +724,15 @@ if(@$_GET['id']==null){
 	if(isset($_POST['SimpanEdit'])){
 		if ($IsPerusahaan == '0' ){
 				
-			$query = mysqli_query($koneksi,"UPDATE mstperson SET NamaPerson='$NamaPerson',AlamatLengkapPerson='$AlamatLengkapPerson',KodeKec='$KodeKec',KodeDesa='$KodeDesa',NamaJalan='$AlamatLengkapPerson',KoorLat='$Lat',KoorLong='$Lng', NoRekeningBank='$NoRekeningBank', AnRekBank='$AnRekBank',KodeDusun='$KodeDusun',NIK='$NIK',NoHP='$NoHP' WHERE IDPerson='$KodePerson'");
+			// $query = mysqli_query($koneksi,"UPDATE mstperson SET NamaPerson='$NamaPerson',AlamatLengkapPerson='$AlamatLengkapPerson',KodeKec='$KodeKec',KodeDesa='$KodeDesa',NamaJalan='$AlamatLengkapPerson',KoorLat='$Lat',KoorLong='$Lng', NoRekeningBank='$NoRekeningBank', AnRekBank='$AnRekBank',KodeDusun='$KodeDusun',NIK='$NIK',NoHP='$NoHP' WHERE IDPerson='$KodePerson'");
 				
+			$stmt = mysqli_prepare($koneksi, "UPDATE mstperson SET NamaPerson=?, AlamatLengkapPerson=?, KodeKec=?, KodeDesa=?, NamaJalan=?, KoorLat=?, KoorLong=?, NoRekeningBank=?, AnRekBank=?, KodeDusun=?, NIK=?, NoHP=? WHERE IDPerson=?");
+
+			mysqli_stmt_bind_param($stmt, "sssssssssssss", $NamaPerson, $AlamatLengkapPerson, $KodeKec, $KodeDesa, $AlamatLengkapPerson, $Lat, $Lng, $NoRekeningBank, $AnRekBank, $KodeDusun, $NIK, $NoHP, $KodePerson);
+
+			$query = mysqli_stmt_execute($stmt);
+
+			mysqli_stmt_close($stmt);
 				
 		}else{
 			if ($IDPerson == '' OR $IDPerson == null){
@@ -728,14 +750,36 @@ if(@$_GET['id']==null){
 					 $kode_jadi2 = "PRS-".$Tahun."-".$bikin_kode1;	
 		 
 					 
-				$result = mysqli_query($koneksi,"INSERT into mstperson (IDPerson,NamaPerson,JenisPerson,AlamatLengkapPerson,UserName,Password,IsPerusahaan,KodeKec,KodeDesa,KodeKab,NamaJalan,KoorLat,KoorLong,IsVerified,NoRekeningBank,AnRekBank,NIK,KodeDusun,KlasifikasiUser,NoHP) VALUES ('$kode_jadi2','$PJPerson','$JenisPerson','$AlamatLengkapPerson','$NIK','$Password','$IsPerusahaan','$KodeKec','$KodeDesa','$KodeKab','$AlamatLengkapPerson','$Lat','$Lng',b'1','$NoRekeningBank','$AnRekBank','$NIK','$KodeDusun','$KlasifikasiUser','$NoHP')");
+				// $result = mysqli_query($koneksi,"INSERT into mstperson (IDPerson,NamaPerson,JenisPerson,AlamatLengkapPerson,UserName,Password,IsPerusahaan,KodeKec,KodeDesa,KodeKab,NamaJalan,KoorLat,KoorLong,IsVerified,NoRekeningBank,AnRekBank,NIK,KodeDusun,KlasifikasiUser,NoHP) VALUES ('$kode_jadi2','$PJPerson','$JenisPerson','$AlamatLengkapPerson','$NIK','$Password','$IsPerusahaan','$KodeKec','$KodeDesa','$KodeKab','$AlamatLengkapPerson','$Lat','$Lng',b'1','$NoRekeningBank','$AnRekBank','$NIK','$KodeDusun','$KlasifikasiUser','$NoHP')");
 							
+				$stmt = mysqli_prepare($koneksi, "INSERT INTO mstperson (IDPerson, NamaPerson, JenisPerson, AlamatLengkapPerson, UserName, Password, IsPerusahaan, KodeKec, KodeDesa, KodeKab, NamaJalan, KoorLat, KoorLong, IsVerified, NoRekeningBank, AnRekBank, NIK, KodeDusun, KlasifikasiUser, NoHP) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+
+				mysqli_stmt_bind_param($stmt, "sssssssssssssssssss", $kode_jadi2, $PJPerson, $JenisPerson, $AlamatLengkapPerson, $UserName, $Password, $IsPerusahaan, $KodeKec, $KodeDesa, $KodeKab, $AlamatLengkapPerson, $Lat, $Lng, $IsVerified, $NoRekeningBank, $AnRekBank, $NIK, $KodeDusun, $KlasifikasiUser, $NoHP);
+
+				$result = mysqli_stmt_execute($stmt);
+
+				mysqli_stmt_close($stmt);
 				if ($result){
-					$query = mysqli_query($koneksi,"UPDATE mstperson SET PJPerson='$kode_jadi2',NamaPerson='$NamaPerson',AlamatLengkapPerson='$AlamatLengkapPerson',KodeKec='$KodeKec',KodeDesa='$KodeDesa',NamaJalan='$AlamatLengkapPerson',KoorLat='$Lat',KoorLong='$Lng', NoRekeningBank='$NoRekeningBank', AnRekBank='$AnRekBank',KodeDusun='$KodeDusun',NoHP='$NoHP' WHERE IDPerson='$KodePerson'");
+					// $stmt = mysqli_stmt($koneksi,"UPDATE mstperson SET PJPerson='$kode_jadi2',NamaPerson='$NamaPerson',AlamatLengkapPerson='$AlamatLengkapPerson',KodeKec='$KodeKec',KodeDesa='$KodeDesa',NamaJalan='$AlamatLengkapPerson',KoorLat='$Lat',KoorLong='$Lng', NoRekeningBank='$NoRekeningBank', AnRekBank='$AnRekBank',KodeDusun='$KodeDusun',NoHP='$NoHP' WHERE IDPerson='$KodePerson'");
+					$stmt = mysqli_prepare($koneksi, "UPDATE mstperson SET PJPerson=?, NamaPerson=?, AlamatLengkapPerson=?, KodeKec=?, KodeDesa=?, NamaJalan=?, KoorLat=?, KoorLong=?, NoRekeningBank=?, AnRekBank=?, KodeDusun=?, NoHP=? WHERE IDPerson=?");
+
+					mysqli_stmt_bind_param($stmt, "sssssssssssss", $kode_jadi2, $NamaPerson, $AlamatLengkapPerson, $KodeKec, $KodeDesa, $AlamatLengkapPerson, $Lat, $Lng, $NoRekeningBank, $AnRekBank, $KodeDusun, $NoHP, $KodePerson);
+
+					mysqli_stmt_execute($stmt);
+
+					mysqli_stmt_close($stmt);
 				}
+
 			}else{
 			
-				$query = mysqli_query($koneksi,"UPDATE mstperson SET NamaPerson='$NamaPerson',PJPerson='$IDPerson',AlamatLengkapPerson='$AlamatLengkapPerson',KodeKec='$KodeKec',KodeDesa='$KodeDesa',NamaJalan='$AlamatLengkapPerson',KoorLat='$Lat',KoorLong='$Lng', NoRekeningBank='$NoRekeningBank', AnRekBank='$AnRekBank',KodeDusun='$KodeDusun',NoHP='NoHP' WHERE IDPerson='$KodePerson'");
+				// $query = mysqli_query($koneksi,"UPDATE mstperson SET NamaPerson='$NamaPerson',PJPerson='$IDPerson',AlamatLengkapPerson='$AlamatLengkapPerson',KodeKec='$KodeKec',KodeDesa='$KodeDesa',NamaJalan='$AlamatLengkapPerson',KoorLat='$Lat',KoorLong='$Lng', NoRekeningBank='$NoRekeningBank', AnRekBank='$AnRekBank',KodeDusun='$KodeDusun',NoHP='NoHP' WHERE IDPerson='$KodePerson'");
+				$stmt = mysqli_prepare($koneksi, "UPDATE mstperson SET NamaPerson=?, PJPerson=?, AlamatLengkapPerson=?, KodeKec=?, KodeDesa=?, NamaJalan=?, KoorLat=?, KoorLong=?, NoRekeningBank=?, AnRekBank=?, KodeDusun=?, NoHP=? WHERE IDPerson=?");
+
+				mysqli_stmt_bind_param($stmt, "sssssssssssss", $NamaPerson, $IDPerson, $AlamatLengkapPerson, $KodeKec, $KodeDesa, $AlamatLengkapPerson, $Lat, $Lng, $NoRekeningBank, $AnRekBank, $KodeDusun, $NoHP, $KodePerson);
+
+				$query = mysqli_stmt_execute($stmt);
+
+				mysqli_stmt_close($stmt);
 			
 			} 			
 		}
@@ -757,10 +801,22 @@ if(@$_GET['id']==null){
 	}
 	
 	function NamaPerson($koneksi, $IDPerson){
-		$query = "SELECT NamaPerson FROM mstperson where IDPerson='$IDPerson'";
-		$conn = mysqli_query($koneksi, $query);
-		$result = mysqli_fetch_array($conn);
-		$NamaPerson = $result['NamaPerson'];
+		// $query = "SELECT NamaPerson FROM mstperson where IDPerson='$IDPerson'";
+		// $conn = mysqli_query($koneksi, $query);
+		// $result = mysqli_fetch_array($conn);
+		// $NamaPerson = $result['NamaPerson'];
+
+		$query = mysqli_prepare($koneksi, "SELECT NamaPerson FROM mstperson WHERE IDPerson=?");
+
+		mysqli_stmt_bind_param($query, "s", $IDPerson);
+
+		mysqli_stmt_execute($query);
+
+		mysqli_stmt_bind_result($query, $NamaPerson);
+
+		mysqli_stmt_fetch($query);
+
+		mysqli_stmt_close($query);
 		
 		return $NamaPerson;
 	 }
