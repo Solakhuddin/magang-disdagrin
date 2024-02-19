@@ -142,16 +142,30 @@ if(isset($_GET['k']) && $_GET['k'] != ''){
 														<option class="form-control" value="" selected>Semua Pasar</option>
 														<?php 
 														// $Pasar = isset($_GET['psr']) ? base64_decode($_GET['psr']) : '';
-														$sql_p = "SELECT * FROM mstpasar ORDER BY NamaPasar ASC";
-														$res_p = $koneksi->query($sql_p);
-														while ($row_p = $res_p->fetch_assoc()) {
-															if(isset($KodePasar) && $KodePasar === $row_p['KodePasar']){
-																echo '<option class="form-control" value="'.base64_encode($row_p['KodePasar']).'" selected>'.$row_p['NamaPasar'].'</option>';
-															}else{
+														// $sql_p = "SELECT * FROM mstpasar ORDER BY NamaPasar ASC";
+														// $res_p = $koneksi->query($sql_p);
+														// while ($row_p = $res_p->fetch_assoc()) {
+														// 	if(isset($KodePasar) && $KodePasar === $row_p['KodePasar']){
+														// 		echo '<option class="form-control" value="'.base64_encode($row_p['KodePasar']).'" selected>'.$row_p['NamaPasar'].'</option>';
+														// 	}else{
 																
-																echo '<option class="form-control" value="'.base64_encode($row_p['KodePasar']).'">'.$row_p['NamaPasar'].'</option>';
-															}
+														// 		echo '<option class="form-control" value="'.base64_encode($row_p['KodePasar']).'">'.$row_p['NamaPasar'].'</option>';
+														// 	}
+														// }
+														$sql_p = "SELECT * FROM mstpasar ORDER BY NamaPasar ASC";
+
+														$stmt = mysqli_prepare($koneksi, $sql_p);
+														mysqli_stmt_execute($stmt);
+														
+														mysqli_stmt_bind_result($stmt, $KodePasar, $NamaPasar);
+
+														while (mysqli_stmt_fetch($stmt)) {
+															$selected = isset($KodePasar) && $KodePasar === $row_p['KodePasar'] ? 'selected' : '';
+															$encodedKodePasar = base64_encode($KodePasar);
+															echo "<option class='form-control' value='$encodedKodePasar' $selected>{$NamaPasar}</option>";
 														}
+
+														mysqli_stmt_close($stmt);
 														?>
 													</select>
 			                                    </div>
@@ -274,15 +288,29 @@ if(isset($_GET['k']) && $_GET['k'] != ''){
 														<select class="form-control" name="KodePasar" id="KodePasar" <?php echo isset($_GET['view']) ? 'disabled' : 'required'; ?>>
 															<option value="" selected disabled>Pilih Pasar</option>
 															<?php 
-															$sql_g = "SELECT KodePasar,NamaPasar FROM mstpasar ORDER BY NamaPasar ASC";
-															$res_g = $koneksi->query($sql_g);
-															while ($row = mysqli_fetch_assoc($res_g)) {
-																if(isset($RowData['KodePasar']) && $row['KodePasar'] == $RowData['KodePasar']){
-																	echo '<option value="'.$row['KodePasar'].'" selected>'.$row['NamaPasar'].'</option>';
-																}else{
-																	echo '<option value="'.$row['KodePasar'].'">'.$row['NamaPasar'].'</option>';
-																}
+															// $sql_g = "SELECT KodePasar,NamaPasar FROM mstpasar ORDER BY NamaPasar ASC";
+															// $res_g = $koneksi->query($sql_g);
+															// while ($row = mysqli_fetch_assoc($res_g)) {
+															// 	if(isset($RowData['KodePasar']) && $row['KodePasar'] == $RowData['KodePasar']){
+															// 		echo '<option value="'.$row['KodePasar'].'" selected>'.$row['NamaPasar'].'</option>';
+															// 	}else{
+															// 		echo '<option value="'.$row['KodePasar'].'">'.$row['NamaPasar'].'</option>';
+															// 	}
+															// }
+															$sql_g = "SELECT KodePasar, NamaPasar FROM mstpasar ORDER BY NamaPasar ASC";
+
+															$stmt_g = mysqli_prepare($koneksi, $sql_g);
+															mysqli_stmt_execute($stmt_g);
+															
+															mysqli_stmt_bind_result($stmt_g, $KodePasar, $NamaPasar);
+
+															while (mysqli_stmt_fetch($stmt_g)) {
+																$selected = isset($RowData['KodePasar']) && $KodePasar == $RowData['KodePasar'] ? 'selected' : '';
+																echo "<option value='$KodePasar' $selected>$NamaPasar</option>";
 															}
+
+															mysqli_stmt_close($stmt_g);
+															
 															?>
 														</select>
 													</div>
