@@ -13,9 +13,30 @@ if(@$_GET['id']==null){
 	$Sebutan = 'Edit Data';	
 	$Readonly = 'readonly';
 	
-	@$Edit = mysqli_query($koneksi,"SELECT * FROM mstperson WHERE IDPerson='".base64_decode($_GET['id'])."'");
-	@$RowData = mysqli_fetch_assoc($Edit);
-	@$res = explode("#", $RowData['JenisPerson']);
+	// @$Edit = mysqli_query($koneksi,"SELECT * FROM mstperson WHERE IDPerson='".base64_decode($_GET['id'])."'");
+	// @$RowData = mysqli_fetch_assoc($Edit);
+	// @$res = explode("#", $RowData['JenisPerson']);
+
+	$stmt = mysqli_prepare($koneksi, "SELECT * FROM mstperson WHERE IDPerson = ?");
+
+    $decoded_id = base64_decode($_GET['id']);
+
+    mysqli_stmt_bind_param($stmt, "s", $decoded_id);
+
+    mysqli_stmt_execute($stmt);
+
+    $result = mysqli_stmt_get_result($stmt);
+
+    $RowData = mysqli_fetch_assoc($result);
+
+    if ($RowData) {
+        $res = explode("#", $RowData['JenisPerson']);
+    }
+
+    mysqli_free_result($result);
+
+    mysqli_stmt_close($stmt);
+
 }
 ?>
 <!DOCTYPE html>
@@ -195,19 +216,45 @@ if(@$_GET['id']==null){
 											<select id="KodeKec" name="KodeKec" class="form-control" required>	
 												<?php
 													echo "<option value=''>--- Kecamatan ---</option>";
-													$menu = mysqli_query($koneksi,"SELECT * FROM mstkec where KodeKab='".KodeKab($koneksi)."'  ORDER BY NamaKecamatan");
-													while($kode = mysqli_fetch_array($menu)){
-														if($RowData['KodeKec'] !== NULL){
-															if($kode['KodeKec'] === $RowData['KodeKec']){
-																echo "<option value=\"".$kode['KodeKec']."\" selected='selected'>".$kode['NamaKecamatan']."</option>\n";
-															}else{
-																echo "<option value=\"".$kode['KodeKec']."\" >".$kode['NamaKecamatan']."</option>\n";
-															}
-														}else{
-															echo "<option value=\"".$kode['KodeKec']."\" >".$kode['NamaKecamatan']."</option>\n";
-														}
+													// $menu = mysqli_query($koneksi,"SELECT * FROM mstkec where KodeKab='".KodeKab($koneksi)."'  ORDER BY NamaKecamatan");
+													// while($kode = mysqli_fetch_array($menu)){
+													// 	if($RowData['KodeKec'] !== NULL){
+													// 		if($kode['KodeKec'] === $RowData['KodeKec']){
+													// 			echo "<option value=\"".$kode['KodeKec']."\" selected='selected'>".$kode['NamaKecamatan']."</option>\n";
+													// 		}else{
+													// 			echo "<option value=\"".$kode['KodeKec']."\" >".$kode['NamaKecamatan']."</option>\n";
+													// 		}
+													// 	}else{
+													// 		echo "<option value=\"".$kode['KodeKec']."\" >".$kode['NamaKecamatan']."</option>\n";
+													// 	}
 														
+													// }
+													$stmt = mysqli_prepare($koneksi, "SELECT * FROM mstkec WHERE KodeKab = ? ORDER BY NamaKecamatan");
+
+													$kode_kab = KodeKab($koneksi);
+
+													mysqli_stmt_bind_param($stmt, "s", $kode_kab);
+
+													mysqli_stmt_execute($stmt);
+
+													$result = mysqli_stmt_get_result($stmt);
+
+													while ($kode = mysqli_fetch_array($result)) {
+														// Check if KodeKec is selected
+														if ($RowData['KodeKec'] !== NULL) {
+															if ($kode['KodeKec'] === $RowData['KodeKec']) {
+																echo "<option value=\"" . $kode['KodeKec'] . "\" selected='selected'>" . $kode['NamaKecamatan'] . "</option>\n";
+															} else {
+																echo "<option value=\"" . $kode['KodeKec'] . "\">" . $kode['NamaKecamatan'] . "</option>\n";
+															}
+														} else {
+															echo "<option value=\"" . $kode['KodeKec'] . "\">" . $kode['NamaKecamatan'] . "</option>\n";
+														}
 													}
+
+													mysqli_free_result($result);
+
+													mysqli_stmt_close($stmt);
 												?>
 											</select>
 										</div>
@@ -217,18 +264,43 @@ if(@$_GET['id']==null){
 											
 												<?php
 													echo "<option value=''>--- Desa ---</option>";
-													$menu = mysqli_query($koneksi,"SELECT * FROM mstdesa where KodeKec='".$RowData['KodeKec']."' ORDER BY NamaDesa");
-													while($kode = mysqli_fetch_array($menu)){
-														if($RowData['KodeDesa'] !== NULL){
-															if($kode['KodeDesa'] === $RowData['KodeDesa']){
-																echo "<option value=\"".$kode['KodeDesa']."\" selected='selected'>".$kode['NamaDesa']."</option>\n";
-															}else{
-																echo "<option value=\"".$kode['KodeDesa']."\" >".$kode['NamaDesa']."</option>\n";
+													// $menu = mysqli_query($koneksi,"SELECT * FROM mstdesa where KodeKec='".$RowData['KodeKec']."' ORDER BY NamaDesa");
+													// while($kode = mysqli_fetch_array($menu)){
+													// 	if($RowData['KodeDesa'] !== NULL){
+													// 		if($kode['KodeDesa'] === $RowData['KodeDesa']){
+													// 			echo "<option value=\"".$kode['KodeDesa']."\" selected='selected'>".$kode['NamaDesa']."</option>\n";
+													// 		}else{
+													// 			echo "<option value=\"".$kode['KodeDesa']."\" >".$kode['NamaDesa']."</option>\n";
+													// 		}
+													// 	}else{
+													// 		echo "<option value=\"".$kode['KodeDesa']."\" >".$kode['NamaDesa']."</option>\n";
+													// 	}
+													// }
+													$stmt = mysqli_prepare($koneksi, "SELECT * FROM mstdesa WHERE KodeKec = ? ORDER BY NamaDesa");
+
+													$kode_kec = $RowData['KodeKec'];
+
+													mysqli_stmt_bind_param($stmt, "s", $kode_kec);
+
+													mysqli_stmt_execute($stmt);
+
+													$result = mysqli_stmt_get_result($stmt);
+
+													while ($kode = mysqli_fetch_array($result)) {
+														if ($RowData['KodeDesa'] !== NULL) {
+															if ($kode['KodeDesa'] === $RowData['KodeDesa']) {
+																echo "<option value=\"" . $kode['KodeDesa'] . "\" selected='selected'>" . $kode['NamaDesa'] . "</option>\n";
+															} else {
+																echo "<option value=\"" . $kode['KodeDesa'] . "\">" . $kode['NamaDesa'] . "</option>\n";
 															}
-														}else{
-															echo "<option value=\"".$kode['KodeDesa']."\" >".$kode['NamaDesa']."</option>\n";
+														} else {
+															echo "<option value=\"" . $kode['KodeDesa'] . "\">" . $kode['NamaDesa'] . "</option>\n";
 														}
 													}
+
+													mysqli_free_result($result);
+
+													mysqli_stmt_close($stmt);
 												?>
 											
 											</select>
@@ -769,8 +841,14 @@ if(@$_GET['id']==null){
 	if(isset($_POST['SimpanEdit'])){
 		if ($IsPerusahaan == '0' ){
 				
-			$query = mysqli_query($koneksi,"UPDATE mstperson SET NamaPerson='$NamaPerson',AlamatLengkapPerson='$AlamatLengkapPerson',KodeKec='$KodeKec',KodeDesa='$KodeDesa',NamaJalan='$AlamatLengkapPerson',KoorLat='$Lat',KoorLong='$Lng', NoRekeningBank='$NoRekeningBank', AnRekBank='$AnRekBank',KodeDusun='$KodeDusun',NIK='$NIK',NoHP='$NoHP' WHERE IDPerson='$KodePerson'");
-				
+			// $query = mysqli_query($koneksi,"UPDATE mstperson SET NamaPerson='$NamaPerson',AlamatLengkapPerson='$AlamatLengkapPerson',KodeKec='$KodeKec',KodeDesa='$KodeDesa',NamaJalan='$AlamatLengkapPerson',KoorLat='$Lat',KoorLong='$Lng', NoRekeningBank='$NoRekeningBank', AnRekBank='$AnRekBank',KodeDusun='$KodeDusun',NIK='$NIK',NoHP='$NoHP' WHERE IDPerson='$KodePerson'");
+			$query = mysqli_prepare($koneksi, "UPDATE mstperson SET NamaPerson=?, AlamatLengkapPerson=?, KodeKec=?, KodeDesa=?, NamaJalan=?, KoorLat=?, KoorLong=?, NoRekeningBank=?, AnRekBank=?, KodeDusun=?, NIK=?, NoHP=? WHERE IDPerson=?");
+
+			mysqli_stmt_bind_param($query, "sssssssssssss", $NamaPerson, $AlamatLengkapPerson, $KodeKec, $KodeDesa, $AlamatLengkapPerson, $Lat, $Lng, $NoRekeningBank, $AnRekBank, $KodeDusun, $NIK, $NoHP, $KodePerson);
+
+			mysqli_stmt_execute($query);
+
+			mysqli_stmt_close($query);
 				
 		}else{
 			if ($IDPerson == '' OR $IDPerson == null){
@@ -788,15 +866,36 @@ if(@$_GET['id']==null){
 					 $kode_jadi2 = "PRS-".$Tahun."-".$bikin_kode1;	
 		 
 					 
-				$result = mysqli_query($koneksi,"INSERT into mstperson (IDPerson,NamaPerson,JenisPerson,AlamatLengkapPerson,UserName,Password,IsPerusahaan,KodeKec,KodeDesa,KodeKab,NamaJalan,KoorLat,KoorLong,IsVerified,NoRekeningBank,AnRekBank,NIK,KodeDusun,KlasifikasiUser,NoHP) VALUES ('$kode_jadi2','$PJPerson','$JenisPerson','$AlamatLengkapPerson','$NIK','$Password','$IsPerusahaan','$KodeKec','$KodeDesa','$KodeKab','$AlamatLengkapPerson','$Lat','$Lng',b'1','$NoRekeningBank','$AnRekBank','$NIK','$KodeDusun','$KlasifikasiUser','$NoHP')");
+				// $result = mysqli_query($koneksi,"INSERT into mstperson (IDPerson,NamaPerson,JenisPerson,AlamatLengkapPerson,UserName,Password,IsPerusahaan,KodeKec,KodeDesa,KodeKab,NamaJalan,KoorLat,KoorLong,IsVerified,NoRekeningBank,AnRekBank,NIK,KodeDusun,KlasifikasiUser,NoHP) VALUES ('$kode_jadi2','$PJPerson','$JenisPerson','$AlamatLengkapPerson','$NIK','$Password','$IsPerusahaan','$KodeKec','$KodeDesa','$KodeKab','$AlamatLengkapPerson','$Lat','$Lng',b'1','$NoRekeningBank','$AnRekBank','$NIK','$KodeDusun','$KlasifikasiUser','$NoHP')");
+				
+				$stmt = mysqli_prepare($koneksi, "INSERT INTO mstperson (IDPerson, NamaPerson, JenisPerson, AlamatLengkapPerson, UserName, Password, IsPerusahaan, KodeKec, KodeDesa, KodeKab, NamaJalan, KoorLat, KoorLong, IsVerified, NoRekeningBank, AnRekBank, NIK, KodeDusun, KlasifikasiUser, NoHP) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+
+				mysqli_stmt_bind_param($stmt, "ssssssssssssssssssss", $kode_jadi2, $PJPerson, $JenisPerson, $AlamatLengkapPerson, $NIK, $Password, $IsPerusahaan, $KodeKec, $KodeDesa, $KodeKab, $AlamatLengkapPerson, $Lat, $Lng, $is_verified, $NoRekeningBank, $AnRekBank, $NIK, $KodeDusun, $KlasifikasiUser, $NoHP);
+
+				$query = mysqli_stmt_execute($stmt);
+
+				mysqli_stmt_close($stmt);
 							
-				if ($result){
-					$query = mysqli_query($koneksi,"UPDATE mstperson SET PJPerson='$kode_jadi2',NamaPerson='$NamaPerson',AlamatLengkapPerson='$AlamatLengkapPerson',KodeKec='$KodeKec',KodeDesa='$KodeDesa',NamaJalan='$AlamatLengkapPerson',KoorLat='$Lat',KoorLong='$Lng', NoRekeningBank='$NoRekeningBank', AnRekBank='$AnRekBank',KodeDusun='$KodeDusun',NIK='$NIK',NoHP='$NoHP' WHERE IDPerson='$KodePerson'");
+				if ($query){
+					// $query = mysqli_query($koneksi,"UPDATE mstperson SET PJPerson='$kode_jadi2',NamaPerson='$NamaPerson',AlamatLengkapPerson='$AlamatLengkapPerson',KodeKec='$KodeKec',KodeDesa='$KodeDesa',NamaJalan='$AlamatLengkapPerson',KoorLat='$Lat',KoorLong='$Lng', NoRekeningBank='$NoRekeningBank', AnRekBank='$AnRekBank',KodeDusun='$KodeDusun',NIK='$NIK',NoHP='$NoHP' WHERE IDPerson='$KodePerson'");
+					$stmt = mysqli_prepare($koneksi, "UPDATE mstperson SET PJPerson=?, NamaPerson=?, AlamatLengkapPerson=?, KodeKec=?, KodeDesa=?, NamaJalan=?, KoorLat=?, KoorLong=?, NoRekeningBank=?, AnRekBank=?, KodeDusun=?, NIK=?, NoHP=? WHERE IDPerson=?");
+
+					mysqli_stmt_bind_param($stmt, "ssssssssssssss", $kode_jadi2, $NamaPerson, $AlamatLengkapPerson, $KodeKec, $KodeDesa, $AlamatLengkapPerson, $Lat, $Lng, $NoRekeningBank, $AnRekBank, $KodeDusun, $NIK, $NoHP, $KodePerson);
+
+					$query = mysqli_stmt_execute($stmt);
+
+					mysqli_stmt_close($stmt);
 				}
 			}else{
 			
-				$query = mysqli_query($koneksi,"UPDATE mstperson SET NamaPerson='$NamaPerson',PJPerson='$IDPerson',AlamatLengkapPerson='$AlamatLengkapPerson',KodeKec='$KodeKec',KodeDesa='$KodeDesa',NamaJalan='$AlamatLengkapPerson',KoorLat='$Lat',KoorLong='$Lng', NoRekeningBank='$NoRekeningBank', AnRekBank='$AnRekBank',KodeDusun='$KodeDusun',NIK='$NIK',NoHP='NoHP' WHERE IDPerson='$KodePerson'");
-			
+				// $query = mysqli_query($koneksi,"UPDATE mstperson SET NamaPerson='$NamaPerson',PJPerson='$IDPerson',AlamatLengkapPerson='$AlamatLengkapPerson',KodeKec='$KodeKec',KodeDesa='$KodeDesa',NamaJalan='$AlamatLengkapPerson',KoorLat='$Lat',KoorLong='$Lng', NoRekeningBank='$NoRekeningBank', AnRekBank='$AnRekBank',KodeDusun='$KodeDusun',NIK='$NIK',NoHP='NoHP' WHERE IDPerson='$KodePerson'");
+				$stmt = mysqli_prepare($koneksi, "UPDATE mstperson SET NamaPerson=?, PJPerson=?, AlamatLengkapPerson=?, KodeKec=?, KodeDesa=?, NamaJalan=?, KoorLat=?, KoorLong=?, NoRekeningBank=?, AnRekBank=?, KodeDusun=?, NIK=?, NoHP=? WHERE IDPerson=?");
+
+				mysqli_stmt_bind_param($stmt, "ssssssssssssss", $NamaPerson, $IDPerson, $AlamatLengkapPerson, $KodeKec, $KodeDesa, $AlamatLengkapPerson, $Lat, $Lng, $NoRekeningBank, $AnRekBank, $KodeDusun, $NIK, $NoHP, $KodePerson);
+
+				$query = mysqli_stmt_execute($stmt);
+
+				mysqli_stmt_close($stmt);
 			} 			
 		}
 		if($query){
@@ -817,10 +916,21 @@ if(@$_GET['id']==null){
 	}
 	
 	function NamaPerson($koneksi, $IDPerson){
-		$query = "SELECT NamaPerson FROM mstperson where IDPerson='$IDPerson'";
-		$conn = mysqli_query($koneksi, $query);
-		$result = mysqli_fetch_array($conn);
-		$NamaPerson = $result['NamaPerson'];
+		// $query = "SELECT NamaPerson FROM mstperson where IDPerson='$IDPerson'";
+		// $conn = mysqli_query($koneksi, $query);
+		// $result = mysqli_fetch_array($conn);
+		// $NamaPerson = $result['NamaPerson'];
+		$query = mysqli_prepare($koneksi, "SELECT NamaPerson FROM mstperson WHERE IDPerson=?");
+
+		mysqli_stmt_bind_param($query, "s", $IDPerson);
+
+		mysqli_stmt_execute($query);
+
+		mysqli_stmt_bind_result($query, $NamaPerson);
+
+		mysqli_stmt_fetch($query);
+
+   		mysqli_stmt_close($query);	
 		
 		return $NamaPerson;
 	 }
