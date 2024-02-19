@@ -13,8 +13,26 @@ if(@$_GET['id']==null){
 	$Sebutan = 'Edit Data';	
 	$Readonly = 'readonly';
 	
-	@$Edit = mysqli_query($koneksi,"SELECT * FROM mstdusun WHERE KodeDusun='".htmlspecialchars(base64_decode($_GET['id']))."'");
-	@$RowData = mysqli_fetch_assoc($Edit);
+	// @$Edit = mysqli_query($koneksi,"SELECT * FROM mstdusun WHERE KodeDusun='".htmlspecialchars(base64_decode($_GET['id']))."'");
+	// @$RowData = mysqli_fetch_assoc($Edit);
+	$sql = "SELECT * FROM mstdusun WHERE KodeDusun=?";
+
+	$stmt = mysqli_prepare($koneksi, $sql);
+
+    mysqli_stmt_bind_param($stmt, "s", $id);
+
+    $id = base64_decode($_GET['id']);
+
+    $success = mysqli_stmt_execute($stmt);
+
+    $result = mysqli_stmt_get_result($stmt);
+
+    $RowData = mysqli_fetch_assoc($result);
+
+    mysqli_free_result($result);
+    
+
+    mysqli_stmt_close($stmt);
 	
 }
 ?>
@@ -327,9 +345,17 @@ if(@$_GET['id']==null){
 			
 			
 			
-			$query = mysqli_query($koneksi,"INSERT into mstdusun (KodeDusun,NamaDusun,KodeDesa,KodeKab,KodeKec) 
-			VALUES ('$kode_jadi','$NamaDusun','$KodeDesa','$KodeKab','$KodeKec')");
-			if($query){
+			// $query = mysqli_query($koneksi,"INSERT into mstdusun (KodeDusun,NamaDusun,KodeDesa,KodeKab,KodeKec) 
+			// VALUES ('$kode_jadi','$NamaDusun','$KodeDesa','$KodeKab','$KodeKec')");
+			$sql = "INSERT INTO mstdusun (KodeDusun, NamaDusun, KodeDesa, KodeKab, KodeKec) VALUES (?, ?, ?, ?, ?)";
+			$stmt = mysqli_prepare($koneksi, $sql);
+
+			mysqli_stmt_bind_param($stmt, "sssss", $kode_jadi, $NamaDusun, $KodeDesa, $KodeKab, $KodeKec);
+
+			$success = mysqli_stmt_execute($stmt);
+
+			mysqli_stmt_close($stmt);
+			if($success){
 				InsertLog($koneksi, 'Tambah Data', 'Menambah Data Dusun dengan ID '.$kode_jadi, $login_id, $kode_jadi, 'Master Dusun');
 				echo '<script language="javascript">document.location="MasterDusun.php";</script>';
 			}else{
@@ -351,8 +377,17 @@ if(@$_GET['id']==null){
 	if(isset($_POST['SimpanEdit'])){
 		
 		//query update
-		$query = mysqli_query($koneksi,"UPDATE mstdusun SET NamaDusun='$NamaDusun',KodeDesa='$KodeDesa',KodeKec='$KodeKec' WHERE KodeDusun='$KodeDusun'");
-		if($query){
+		// $query = mysqli_query($koneksi,"UPDATE mstdusun SET NamaDusun='$NamaDusun',KodeDesa='$KodeDesa',KodeKec='$KodeKec' WHERE KodeDusun='$KodeDusun'");
+		$sql = "UPDATE mstdusun SET NamaDusun=?, KodeDesa=?, KodeKec=? WHERE KodeDusun=?";
+		$stmt = mysqli_prepare($koneksi, $sql);
+
+		mysqli_stmt_bind_param($stmt, "ssss", $NamaDusun, $KodeDesa, $KodeKec, $KodeDusun);
+
+		$success = mysqli_stmt_execute($stmt);
+
+		mysqli_stmt_close($stmt);
+
+		if ($success) {
 			InsertLog($koneksi, 'Edit Data', 'Mengubah Master Dusun atas nama '.$NamaDusun, $login_id, $KodeDusun, 'Master Dusun');
 			echo '<script language="javascript">document.location="MasterDusun.php";</script>';
 		}else{
