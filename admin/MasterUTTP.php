@@ -12,9 +12,26 @@ if(@$_GET['id']==null){
 	$Sebutan = 'Data UTTP';	
 	$Readonly = 'readonly';
 	
-	@$Edit = mysqli_query($koneksi,"SELECT * FROM msttimbangan WHERE KodeTimbangan='".htmlspecialchars(base64_decode($_GET['id']))."'");
-	@$RowData = mysqli_fetch_assoc($Edit);
-	@$res = explode("#", $RowData['JenisPerson']);
+	// @$Edit = mysqli_query($koneksi,"SELECT * FROM msttimbangan WHERE KodeTimbangan='".htmlspecialchars(base64_decode($_GET['id']))."'");
+	// @$RowData = mysqli_fetch_assoc($Edit);
+	// @$res = explode("#", $RowData['JenisPerson']);
+	$sql = "SELECT * FROM msttimbangan WHERE KodeTimbangan = ?";
+
+	$stmt = mysqli_prepare($koneksi, $sql);
+
+    mysqli_stmt_bind_param($stmt, "s", base64_decode($_GET['id']));
+
+    mysqli_stmt_execute($stmt);
+
+    $result = mysqli_stmt_get_result($stmt);
+
+    $RowData = mysqli_fetch_assoc($result);
+
+    mysqli_stmt_close($stmt);
+
+    if ($RowData) {
+        $res = explode("#", $RowData['JenisPerson']);
+    }
 }
 ?>
 <!DOCTYPE html>
@@ -231,8 +248,23 @@ if(@$_GET['id']==null){
 									<tbody>
 									<?php 
 									$no = 1;
-									$QuerySyarat = mysqli_query($koneksi,"SELECT a.NamaKelas,a.KodeKelas,b.NamaTimbangan,b.KodeTimbangan FROM kelas a join msttimbangan b on a.KodeTimbangan=b.KodeTimbangan WHERE a.KodeTimbangan='".$RowData['KodeTimbangan']."' ");
-									while($RowSyarat=mysqli_fetch_array($QuerySyarat)){
+									// $QuerySyarat = mysqli_query($koneksi,"SELECT a.NamaKelas,a.KodeKelas,b.NamaTimbangan,b.KodeTimbangan FROM kelas a join msttimbangan b on a.KodeTimbangan=b.KodeTimbangan WHERE a.KodeTimbangan='".$RowData['KodeTimbangan']."' ");
+									// while($RowSyarat=mysqli_fetch_array($QuerySyarat)){
+									$query = "SELECT a.NamaKelas, a.KodeKelas, b.NamaTimbangan, b.KodeTimbangan 
+											FROM kelas a 
+											JOIN msttimbangan b ON a.KodeTimbangan = b.KodeTimbangan 
+											WHERE a.KodeTimbangan = ?";
+
+									// Prepare the SQL statement as a prepared statement
+									$stmt = mysqli_prepare($koneksi, $query);
+
+									mysqli_stmt_bind_param($stmt, "s", $RowData['KodeTimbangan']);
+
+									mysqli_stmt_execute($stmt);
+
+									$result = mysqli_stmt_get_result($stmt);
+
+									while ($RowSyarat = mysqli_fetch_assoc($result)) {
 									?>
 										<tr>
 											<td align="left" width="100">
@@ -254,7 +286,10 @@ if(@$_GET['id']==null){
 											
 											
 										</tr>
-									<?php } ?>
+									<?php 
+									} 
+									mysqli_stmt_close($stmt);
+									?>
 										<tr style="background-color:white;">
 											<td colspan="9" align="right">
 											<a href="#" class='open_modal_item' data-kodetim='<?php echo $RowData['KodeTimbangan'];?>' data-namatim='<?php echo $RowData['NamaTimbangan'];?>' data-user='<?php echo $login_id; ?>'><span class="btn btn-secondary " title="Tambah Kelas Timbangan">Tambah</span></a>
@@ -356,9 +391,20 @@ if(@$_GET['id']==null){
 			 $kode_jadi = "TMB-".$bikin_kode;
 			
 			
-			$query = mysqli_query($koneksi,"INSERT into msttimbangan(KodeTimbangan,NamaTimbangan,JenisTimbangan,MasaTera,IsPunyaKelas) 
-			VALUES ('$kode_jadi','$NamaTimbangan','$JenisTimbangan','$MasaTera','$IsPunyaKelas')");
-			if($query){
+			// $query = mysqli_query($koneksi,"INSERT into msttimbangan(KodeTimbangan,NamaTimbangan,JenisTimbangan,MasaTera,IsPunyaKelas) 
+			// VALUES ('$kode_jadi','$NamaTimbangan','$JenisTimbangan','$MasaTera','$IsPunyaKelas')");
+			$sql = "INSERT INTO msttimbangan (KodeTimbangan, NamaTimbangan, JenisTimbangan, MasaTera, IsPunyaKelas) 
+        					VALUES (?, ?, ?, ?, ?)";
+
+			$stmt = mysqli_prepare($koneksi, $sql);
+
+			mysqli_stmt_bind_param($stmt, "sssss", $kode_jadi, $NamaTimbangan, $JenisTimbangan, $MasaTera, $IsPunyaKelas);
+
+			$cek = mysqli_stmt_execute($stmt);
+
+			mysqli_stmt_close($stmt);
+
+			if($cek){
 				if ($IsPunyaKelas != '1') {
 						$sql1 = mysqli_query($koneksi,"SELECT RIGHT(KodeKelas,7) AS kode1 FROM kelas ORDER BY KodeKelas DESC LIMIT 1");  
 						$nums1 = mysqli_num_rows($sql1);
@@ -373,9 +419,17 @@ if(@$_GET['id']==null){
 						 $kodekelas = "KLS-".$bikin_kode1;
 						 echo $kodekelas;
 						
-						$query1 = mysqli_query($koneksi,"INSERT into kelas(KodeTimbangan,KodeKelas,Keterangan) VALUES ('$kode_jadi','$kodekelas','$NamaTimbangan')");
-						
-					if ($query1){
+						// $query1 = mysqli_query($koneksi,"INSERT into kelas(KodeTimbangan,KodeKelas,Keterangan) VALUES ('$kode_jadi','$kodekelas','$NamaTimbangan')");
+					$sql = "INSERT INTO kelas (KodeTimbangan, KodeKelas, Keterangan) VALUES (?, ?, ?)";
+
+					$stmt = mysqli_prepare($koneksi, $sql);
+
+					mysqli_stmt_bind_param($stmt, "sss", $kode_jadi, $kodekelas, $NamaTimbangan);
+
+					$cek1 = mysqli_stmt_execute($stmt);
+
+					mysqli_stmt_close($stmt);	
+					if ($cek1){
 						InsertLog($koneksi, 'Tambah Data', 'Menambah Master Data Timbangan dengan nama '.$NamaTimbangan, $login_id, $kode_jadi, 'Master Data');
 						echo '<script language="javascript">document.location="MasterUTTP.php";</script>';
 					}else{
@@ -420,8 +474,17 @@ if(@$_GET['id']==null){
 	if(isset($_POST['SimpanEdit'])){
 		
 		//query update
-		$query = mysqli_query($koneksi,"UPDATE msttimbangan SET NamaTimbangan='$NamaTimbangan',JenisTimbangan='$JenisTimbangan',MasaTera='$MasaTera',IsPunyaKelas='$IsPunyaKelas' WHERE KodeTimbangan='$KodeTimbangan'");
-		if($query){
+		// $query = mysqli_query($koneksi,"UPDATE msttimbangan SET NamaTimbangan='$NamaTimbangan',JenisTimbangan='$JenisTimbangan',MasaTera='$MasaTera',IsPunyaKelas='$IsPunyaKelas' WHERE KodeTimbangan='$KodeTimbangan'");
+		$sql = "UPDATE msttimbangan SET NamaTimbangan=?, JenisTimbangan=?, MasaTera=?, IsPunyaKelas=? WHERE KodeTimbangan=?";
+
+		$stmt = mysqli_prepare($koneksi, $sql);
+
+		mysqli_stmt_bind_param($stmt, "sssss", $NamaTimbangan, $JenisTimbangan, $MasaTera, $IsPunyaKelas, $KodeTimbangan);
+
+		$cek2 = mysqli_stmt_execute($stmt);
+
+		mysqli_stmt_close($stmt);
+		if($cek2){
 			InsertLog($koneksi, 'Edit Data', 'Mengubah Master Data Timbangan dengan nama '.$NamaTimbangan, $login_id, $KodeTimbangan, 'Master Data');
 			echo '<script type="text/javascript">
 				  sweetAlert({
@@ -449,9 +512,28 @@ if(@$_GET['id']==null){
 	
 	if(base64_decode(@$_GET['aksi'])=='Hapus'){
 		if(@$_GET['view']=='1'){
-			mysqli_query($koneksi,"DELETE FROM kelas WHERE KodeTimbangan='".htmlspecialchars(base64_decode($_GET['id']))."'");
-			$query = mysqli_query($koneksi,"DELETE FROM msttimbangan WHERE KodeTimbangan='".htmlspecialchars(base64_decode($_GET['id']))."'");
-			if($query){
+			// mysqli_query($koneksi,"DELETE FROM kelas WHERE KodeTimbangan='".htmlspecialchars(base64_decode($_GET['id']))."'");
+			// $query = mysqli_query($koneksi,"DELETE FROM msttimbangan WHERE KodeTimbangan='".htmlspecialchars(base64_decode($_GET['id']))."'");
+			$decoded_id = base64_decode($_GET['id']);
+			
+			$sql_delete_kelas = "DELETE FROM kelas WHERE KodeTimbangan = ?";
+			$stmt_delete_kelas = mysqli_prepare($koneksi, $sql_delete_kelas);
+			
+			mysqli_stmt_bind_param($stmt_delete_kelas, "s", $decoded_id);
+
+			mysqli_stmt_execute($stmt_delete_kelas);
+
+			mysqli_stmt_close($stmt_delete_kelas);
+
+			$sql_delete_msttimbangan = "DELETE FROM msttimbangan WHERE KodeTimbangan = ?";
+			$stmt_delete_msttimbangan = mysqli_prepare($koneksi, $sql_delete_msttimbangan);
+
+			mysqli_stmt_bind_param($stmt_delete_msttimbangan, "s", $decoded_id);
+
+			$cek = mysqli_stmt_execute($stmt_delete_msttimbangan);
+
+			mysqli_stmt_close($stmt_delete_msttimbangan);
+			if($cek){
 				 
 				InsertLog($koneksi, 'Hapus Data', 'Menghapus Master Data Timbangan dengan nama '.base64_decode(@$_GET['nm']), $login_id, base64_decode(@$_GET['id']), 'Master Data');
 				echo '<script language="javascript">document.location="MasterUTTP.php"; </script>';
@@ -468,8 +550,20 @@ if(@$_GET['id']==null){
 						  </script>';
 			}
 		}elseif(@$_GET['view']=='2'){
-			$query = mysqli_query($koneksi,"DELETE FROM kelas WHERE KodeKelas='".htmlspecialchars(base64_decode($_GET['id']))."' AND KodeTimbangan='".htmlspecialchars(base64_decode($_GET['cd']))."'");
-			if($query){
+			// $query = mysqli_query($koneksi,"DELETE FROM kelas WHERE KodeKelas='".htmlspecialchars(base64_decode($_GET['id']))."' AND KodeTimbangan='".htmlspecialchars(base64_decode($_GET['cd']))."'");
+			$sql = "DELETE FROM kelas WHERE KodeKelas = ? AND KodeTimbangan = ?";
+
+			$stmt = mysqli_prepare($koneksi, $sql);
+
+			$decoded_id = base64_decode($_GET['id']);
+			$decoded_cd = base64_decode($_GET['cd']);
+
+			mysqli_stmt_bind_param($stmt, "ss", $decoded_id, $decoded_cd);
+
+			$cek = mysqli_stmt_execute($stmt);
+
+			mysqli_stmt_close($stmt);
+			if($cek){
 				
 				InsertLog($koneksi, 'Hapus Data', 'Menghapus Master Data Kelas Timbangan dengan nama '.@$_GET['nm'], $login_id, base64_decode(@$_GET['id']), 'Master Data');
 				echo '<script language="javascript">document.location="MasterUTTP.php?id='.$_GET['cd'].'"; </script>';
@@ -486,7 +580,6 @@ if(@$_GET['id']==null){
 						  </script>';
 			}
 		}
-	
 	}
 	
 		
@@ -504,10 +597,18 @@ if(@$_GET['id']==null){
 		 $bikin_kode1 = str_pad($kode1, 7, "0", STR_PAD_LEFT);
 		 $kodekelas = "KLS-".$bikin_kode1;
 		
-		$query1 = mysqli_query($koneksi,"INSERT into kelas(KodeTimbangan,KodeKelas,NamaKelas) VALUES ('$KodeTimbangan','$kodekelas','$NamaKelas')");
+		// $query1 = mysqli_query($koneksi,"INSERT into kelas(KodeTimbangan,KodeKelas,NamaKelas) VALUES ('$KodeTimbangan','$kodekelas','$NamaKelas')");
+		$sql = "INSERT INTO kelas (KodeTimbangan, KodeKelas, NamaKelas) VALUES (?, ?, ?)";
+
+		$stmt = mysqli_prepare($koneksi, $sql);
+
+		mysqli_stmt_bind_param($stmt, "sss", $KodeTimbangan, $kodekelas, $NamaKelas);
+
+		$cek = mysqli_stmt_execute($stmt);
+
+		mysqli_stmt_close($stmt);
 				
-				
-		if ($query1){
+		if ($cek){
 			InsertLog($koneksi, 'Tambah Data', 'Menambah Master Data Kelas Timbangan dengan nama '.$NamaKelas, $login_id, $kodekelas, 'Master Data');
 			echo '<script language="javascript">document.location="MasterUTTP.php?id='.base64_encode($KodeTimbangan).'";</script>';
 		}else{
@@ -526,9 +627,18 @@ if(@$_GET['id']==null){
 	
 	if(isset($_POST['EditItem'])){
 		
-		$query = mysqli_query($koneksi,"UPDATE kelas SET NamaKelas='$NamaKelas' WHERE KodeTimbangan='$KodeTimbangan' and KodeKelas='$KodeKelas' ");
-		
-			if($query){
+		// $query = mysqli_query($koneksi,"UPDATE kelas SET NamaKelas='$NamaKelas' WHERE KodeTimbangan='$KodeTimbangan' and KodeKelas='$KodeKelas' ");
+			$sql = "UPDATE kelas SET NamaKelas = ? WHERE KodeTimbangan = ? AND KodeKelas = ?";
+
+			$stmt = mysqli_prepare($koneksi, $sql);
+
+			mysqli_stmt_bind_param($stmt, "sss", $NamaKelas, $KodeTimbangan, $KodeKelas);
+
+			$cek = mysqli_stmt_execute($stmt);
+
+			mysqli_stmt_close($stmt);
+			
+			if($cek){
 				InsertLog($koneksi, 'Edit Data', 'Mengubah Master Data Kelas Timbangan dengan nama '.$NamaKelas, $login_id, $KodeKelas, 'Master Data');
 				
 				echo '<script type="text/javascript">
