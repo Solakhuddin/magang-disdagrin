@@ -1,8 +1,25 @@
 <?php
 include '../admin/akses.php';
 $Page = '';
-$Edit = mysqli_query($koneksi,"SELECT * FROM userlogin WHERE UserName='$login_id'");
-$RowData = mysqli_fetch_assoc($Edit);
+// $Edit = mysqli_query($koneksi,"SELECT * FROM userlogin WHERE UserName='$login_id'");
+// $RowData = mysqli_fetch_assoc($Edit);
+
+$sql = "SELECT * FROM userlogin WHERE UserName = ?";
+
+$stmt = mysqli_prepare($koneksi, $sql);
+
+mysqli_stmt_bind_param($stmt, "s", $login_id);
+
+mysqli_stmt_execute($stmt);
+
+$result = mysqli_stmt_get_result($stmt);
+
+$RowData = array();
+while ($row = mysqli_fetch_assoc($result)) {
+    $RowData[] = $row;
+}
+
+mysqli_stmt_close($stmt);
 
 ?>
 <!DOCTYPE html>
@@ -166,9 +183,16 @@ $RowData = mysqli_fetch_assoc($Edit);
 		if(isset($_POST['SimpanEdit'])){
 		
 		// update data user login berdasarkan username yng di pilih
-		$query = mysqli_query($koneksi,"UPDATE userlogin SET ActualName='$ActualName', NamaPegawai='$ActualName',Address='$Address',Email='$Email',UserPsw='$UserPsw',Jabatan='$Jabatan', NIP='$NIP', HPNo='$HPNo' WHERE UserName='$login_id'");
+		// $query = mysqli_query($koneksi,"UPDATE userlogin SET ActualName='$ActualName', NamaPegawai='$ActualName',Address='$Address',Email='$Email',UserPsw='$UserPsw',Jabatan='$Jabatan', NIP='$NIP', HPNo='$HPNo' WHERE UserName='$login_id'");
+		$query = mysqli_prepare($koneksi, "UPDATE userlogin SET ActualName=?, NamaPegawai=?, Address=?, Email=?, UserPsw=?, Jabatan=?, NIP=?, HPNo=? WHERE UserName=?");
+
+		mysqli_stmt_bind_param($query, 'sssssssss', $ActualName, $ActualName, $Address, $Email, $UserPsw, $Jabatan, $NIP, $HPNo, $login_id);
+
+		$cek = mysqli_stmt_execute($query);
+
+		mysqli_stmt_close($query);
 		
-		if($query){
+		if($cek){
 			InsertLog($koneksi, 'Edit Data', 'Mengubah data User Login atas nama '.$ActualName, $login_id, '', '');
 			echo '<script type="text/javascript">
 				  sweetAlert({
