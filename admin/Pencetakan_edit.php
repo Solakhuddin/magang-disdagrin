@@ -10,15 +10,32 @@ $Tanggal = date('Ymd');
 if(@$_GET['id']!=null){
 	$NoTransArusKB = mysqli_escape_string($koneksi, base64_decode($_GET['id']));
 
+// 	$sql = "SELECT NoTransArusKB, TanggalTransaksi, TipeTransaksi, KodePasar, NoTrRequest, Keterangan, KodeBatchPencetakan, TotalNilaKB, UserName
+// 	 FROM traruskb
+// 	 WHERE TipeTransaksi = 'PENCETAKAN' AND NoTransArusKB = '$NoTransArusKB'";
+// 	$res = $koneksi->query($sql);
+// 	if(mysqli_num_rows($res) > 0){
+// 		$row = mysqli_fetch_assoc($res);
+// 	}
+// }
 	$sql = "SELECT NoTransArusKB, TanggalTransaksi, TipeTransaksi, KodePasar, NoTrRequest, Keterangan, KodeBatchPencetakan, TotalNilaKB, UserName
-	 FROM traruskb
-	 WHERE TipeTransaksi = 'PENCETAKAN' AND NoTransArusKB = '$NoTransArusKB'";
-	$res = $koneksi->query($sql);
-	if(mysqli_num_rows($res) > 0){
-		$row = mysqli_fetch_assoc($res);
-	}
-}
+        FROM traruskb
+        WHERE TipeTransaksi = 'PENCETAKAN' AND NoTransArusKB = ?";
 
+	$stmt = mysqli_prepare($koneksi, $sql);
+
+    mysqli_stmt_bind_param($stmt, "s", $NoTransArusKB);
+
+    mysqli_stmt_execute($stmt);
+
+	$result = mysqli_stmt_get_result($stmt);
+
+	$rows = array();
+	while ($fetch = mysqli_fetch_assoc($result)) {
+		$rows[] = $fetch;
+	}
+	mysqli_stmt_close($stmt);
+}
 ?>
 <!DOCTYPE html>
 <html>
