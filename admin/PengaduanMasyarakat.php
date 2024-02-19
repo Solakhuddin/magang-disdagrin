@@ -7,10 +7,23 @@ $Page = 'PengaduanMasyarakat';
 // $SubPage = 'LapTeraDinas';
 $TanggalTransaksi = date("Y-m-d H:i:s");
 
-if(@$_GET['id']!=null){
-	$Edit = mysqli_query($koneksi,"SELECT * FROM trpengaduan WHERE KodePengaduan='".base64_decode($_GET['id'])."'");
-	$RowData = mysqli_fetch_assoc($Edit);
+if(isset($_GET['id']) && $_GET['id'] != '') {
+    $stmt = $koneksi->prepare("SELECT * FROM trpengaduan WHERE KodePengaduan = ?");
+    $kodePengaduan = base64_decode($_GET['id']);
+    $stmt->bind_param("s", $kodePengaduan);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $row = $result->fetch_assoc();
+
+    $stmt->close();
 }
+
+
+// script lama
+// if(@$_GET['id']!=null){
+// 	$Edit = mysqli_query($koneksi,"SELECT * FROM trpengaduan WHERE KodePengaduan='".base64_decode($_GET['id'])."'");
+// 	$RowData = mysqli_fetch_assoc($Edit);
+// }
 
 ?>
 <!DOCTYPE html>
@@ -116,16 +129,44 @@ if(@$_GET['id']!=null){
 									<?php
 										include '../library/pagination1.php';
 										// mengatur variabel reload dan sql
-										@$keyword  = $_REQUEST['keyword'];
+										// @$keyword  = $_REQUEST['keyword'];
+										// $reload = "PengaduanMasyarakat.php?pagination=true&keyword=$keyword";
+										// $sql =  "SELECT * FROM trpengaduan WHERE 1 ";
+										
+										// if(@$_REQUEST['keyword']!=null){
+										// 	$sql .= " AND Email LIKE '%".$_REQUEST['keyword']."%'  ";
+										// }
+										
+										// $sql .=" ORDER BY TglPengaduan DESC";
+										// $result = mysqli_query($koneksi,$sql);
+										$keyword = $_REQUEST['keyword'] ?? ''; // Using the null coalescing operator to handle undefined index
 										$reload = "PengaduanMasyarakat.php?pagination=true&keyword=$keyword";
-										$sql =  "SELECT * FROM trpengaduan WHERE 1 ";
-										
-										if(@$_REQUEST['keyword']!=null){
-											$sql .= " AND Email LIKE '%".$_REQUEST['keyword']."%'  ";
+
+										// Prepare the base SQL statement
+										$sql = "SELECT * FROM trpengaduan WHERE 1 ";
+
+										// Check if keyword is provided
+										if (!empty($keyword)) {
+											$sql .= " AND Email LIKE ?";
 										}
-										
-										$sql .=" ORDER BY TglPengaduan DESC";
-										$result = mysqli_query($koneksi,$sql);
+
+										$sql .= " ORDER BY TglPengaduan DESC";
+
+										// Prepare the statement
+										$stmt = $koneksi->prepare($sql);
+
+										if (!empty($keyword)) {
+											// Bind parameter for keyword
+											$keywordParam = '%' . $keyword . '%';
+											$stmt->bind_param("s", $keywordParam);
+										}
+
+										// Execute the statement
+										$stmt->execute();
+
+										// Get the result
+										$result = $stmt->get_result();
+
 										
 										//pagination config start
 										$rpp = 15; // jumlah record per halaman
@@ -200,26 +241,31 @@ if(@$_GET['id']!=null){
 								<div class="row">
 									<div class="col-lg-8 alert alert-success" >
 									<?php 
-										if($RowData['Status']=='Belum dibaca'){
-											mysqli_query($koneksi,"UPDATE trpengaduan SET Status='Terbaca' WHERE KodePengaduan='".$RowData['KodePengaduan']."'");
-									
+										if($row['Status']=='Belum dibaca'){
+											// mysqli_query($koneksi,"UPDATE trpengaduan SET Status='Terbaca' WHERE KodePengaduan='".$row['KodePengaduan']."'");
+											$query = "UPDATE trpengaduan SET Status='Terbaca' WHERE KodePengaduan=?";
+											$stmt = mysqli_prepare($koneksi, $query);
+											mysqli_stmt_bind_param($stmt, "s", $row['KodePengaduan']);
+											mysqli_stmt_execute($stmt);
+											mysqli_stmt_close($stmt);
+
 										} 
 									?>
 										<label>Pengirim</label>
-										<p><?php echo $RowData['Email']; ?> </p>
+										<p><?php echo $row['Email']; ?> </p>
 										
 										<label>Tanggal Pengiriman</label>
-										<p><?php echo TanggalIndo($RowData['TglPengaduan']); ?> | <?php echo substr($RowData['TglPengaduan'],11,19); ?></p>
+										<p><?php echo TanggalIndo($row['TglPengaduan']); ?> | <?php echo substr($row['TglPengaduan'],11,19); ?></p>
 										
 										<label>No Telephone</label>
-										<p><?php echo $RowData['Telepon']; ?></p>
+										<p><?php echo $row['Telepon']; ?></p>
 										<hr/>
 										
 										<label>Isi Pesan</label>
-										<p><?php echo $RowData['Pesan']; ?></p>
+										<p><?php echo $row['Pesan']; ?></p>
 										<hr/>
 										<div class="text-right">
-											<a href="mailto:<?php echo $RowData['Email'];?>" target="_BLANK"><button class="btn btn-success" style="border-radius:2px;">Balas</button></a>
+											<a href="mailto:<?php echo $row['Email'];?>" target="_BLANK"><button class="btn btn-success" style="border-radius:2px;">Balas</button></a>
 											<a href="PengaduanMasyarakat.php"><button class="btn btn-danger" style="border-radius:2px;">Kembali</button></a>
 										</div>
 									</div>
@@ -261,8 +307,16 @@ if(@$_GET['id']!=null){
 		
 	
 	if(base64_decode(@$_GET['aksi'])=='Hapus'){
-		$query = mysqli_query($koneksi,"delete from trpengaduan WHERE  KodePengaduan='".htmlspecialchars(base64_decode($_GET['tr']))."'");
-		if($query){
+		// $query = mysqli_query($koneksi,"delete from trpengaduan WHERE  KodePengaduan='".htmlspecialchars(base64_decode($_GET['tr']))."'");
+		$decoded_id = base64_decode($_GET['tr']);
+
+		$query = "DELETE FROM trpengaduan WHERE KodePengaduan=?";
+		$stmt = mysqli_prepare($koneksi, $query);
+		mysqli_stmt_bind_param($stmt, "s", $decoded_id);
+		$cek = mysqli_stmt_execute($stmt);
+		mysqli_stmt_close($stmt);
+
+		if($cek){
 			InsertLog($koneksi, 'Hapus Data', 'Menghapus Pengaduan Masyarakat ', $login_id, base64_decode(@$_GET['tr']), 'Layanan Pengaduan Masyarakat');
 			echo '<script language="javascript">document.location="PengaduanMasyarakat.php"; </script>';
 		}else{
