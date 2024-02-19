@@ -13,9 +13,25 @@ if(@$_GET['id']==null){
 	$Sebutan = 'Edit Data';	
 	$Readonly = 'readonly';
 	
-	@$Edit = mysqli_query($koneksi,"SELECT * FROM mstperson WHERE IDPerson='".base64_decode($_GET['id'])."'");
-	@$RowData = mysqli_fetch_assoc($Edit);
-	@$res = explode("#", $RowData['JenisPerson']);
+	// @$Edit = mysqli_query($koneksi,"SELECT * FROM mstperson WHERE IDPerson='".base64_decode($_GET['id'])."'");
+	// @$RowData = mysqli_fetch_assoc($Edit);
+	// @$res = explode("#", $RowData['JenisPerson']);
+	$decoded_id = base64_decode($_GET['id']);
+
+	$query = mysqli_prepare($koneksi, "SELECT * FROM mstperson WHERE IDPerson=?");
+
+    mysqli_stmt_bind_param($query, "s", $decoded_id);
+
+    mysqli_stmt_execute($query);
+
+    $result = mysqli_stmt_get_result($query);
+
+    $row_data = mysqli_fetch_assoc($result);
+
+    $res = explode("#", $row_data['JenisPerson']);
+
+    mysqli_stmt_close($query);
+	
 }
 ?>
 <!DOCTYPE html>
