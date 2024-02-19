@@ -14,8 +14,23 @@ if(@$_GET['id']==null){
 	$Sebutan = 'Edit Data';	
 	$Readonly = 'readonly';
 	
-	$Edit = mysqli_query($koneksi,"SELECT * FROM lapakpasar WHERE IDLapak='".htmlspecialchars(base64_decode($_GET['id']))."' and KodePasar='".htmlspecialchars(base64_decode($_GET['psr']))."'");
-	$RowData = mysqli_fetch_assoc($Edit);
+	// $Edit = mysqli_query($koneksi,"SELECT * FROM lapakpasar WHERE IDLapak='".htmlspecialchars(base64_decode($_GET['id']))."' and KodePasar='".htmlspecialchars(base64_decode($_GET['psr']))."'");
+	// $RowData = mysqli_fetch_assoc($Edit);
+	$sql = "SELECT * FROM lapakpasar WHERE IDLapak = ? AND KodePasar = ?";
+	$stmt = mysqli_prepare($koneksi, $sql);
+
+	$IDLapak = base64_decode($_GET['id']);
+    $KodePasar = base64_decode($_GET['psr']);
+
+    mysqli_stmt_bind_param($stmt, "ss", $IDLapak, $KodePasar);
+
+    mysqli_stmt_execute($stmt);
+
+    $result = mysqli_stmt_get_result($stmt);
+
+    $RowData = mysqli_fetch_assoc($result);
+
+    mysqli_stmt_close($stmt);
 }
 ?>
 <!DOCTYPE html>
@@ -329,9 +344,18 @@ if(@$_GET['id']==null){
 			 $bikin_kode = str_pad($kode, 10, "0", STR_PAD_LEFT);
 			 $kode_jadi = "LPK-".$bikin_kode;
 			 
-			$query = mysqli_query($koneksi,"INSERT lapakpasar (KodePasar,BlokLapak,NomorLapak,Retribusi,Keterangan,IDLapak) 
-			VALUES ('$KodePasar','$BlokLapak','$NomorLapak','$Retribusi','$Keterangan','$kode_jadi')");
-			if($query){
+			// $query = mysqli_query($koneksi,"INSERT lapakpasar (KodePasar,BlokLapak,NomorLapak,Retribusi,Keterangan,IDLapak) 
+			// VALUES ('$KodePasar','$BlokLapak','$NomorLapak','$Retribusi','$Keterangan','$kode_jadi')");
+			$sql = "INSERT INTO lapakpasar (KodePasar, BlokLapak, NomorLapak, Retribusi, Keterangan, IDLapak) VALUES (?, ?, ?, ?, ?, ?)";
+			$stmt = mysqli_prepare($koneksi, $sql);
+
+			mysqli_stmt_bind_param($stmt, "ssssss", $KodePasar, $BlokLapak, $NomorLapak, $Retribusi, $Keterangan, $kode_jadi);
+
+			$success = mysqli_stmt_execute($stmt);
+
+			mysqli_stmt_close($stmt);
+
+			if ($success) {
 				InsertLog($koneksi, 'Tambah Data', 'Menambah Data Lapak Pasar '.$BlokLapak, $login_id, $kode_jadi, 'Master Lapak Pasar');
 				echo '<script language="javascript">alert("Data Berhasil Disimpan!");document.location="MasterLapakPasar.php";</script>';
 			}else{
@@ -351,9 +375,17 @@ if(@$_GET['id']==null){
 	
 	if(isset($_POST['SimpanEdit'])){
 		//update data user login berdasarkan username yng di pilih
-		$query = mysqli_query($koneksi,"UPDATE lapakpasar SET BlokLapak='$BlokLapak',NomorLapak='$NomorLapak',Retribusi='$Retribusi', Keterangan='$Keterangan' WHERE IDLapak='$IDLapak' and  KodePasar='$Kode'");
+		// $query = mysqli_query($koneksi,"UPDATE lapakpasar SET BlokLapak='$BlokLapak',NomorLapak='$NomorLapak',Retribusi='$Retribusi', Keterangan='$Keterangan' WHERE IDLapak='$IDLapak' and  KodePasar='$Kode'");
+		$sql = "UPDATE lapakpasar SET BlokLapak=?, NomorLapak=?, Retribusi=?, Keterangan=? WHERE IDLapak=? AND KodePasar=?";
+		$stmt = mysqli_prepare($koneksi, $sql);
+
+		mysqli_stmt_bind_param($stmt, "ssssss", $BlokLapak, $NomorLapak, $Retribusi, $Keterangan, $IDLapak, $Kode);
+
+		$success = mysqli_stmt_execute($stmt);
+
+		mysqli_stmt_close($stmt);
 		
-		if($query){
+		if ($success) {
 			InsertLog($koneksi, 'Edit Data', 'Mengubah Data Lapak Pasar '.$BlokLapak, $login_id, $IDLapak, 'Master Lapak Pasar');
 			echo '<script type="text/javascript">
 				  sweetAlert({
