@@ -8,8 +8,24 @@ $Page = 'PengajuanOnline';
 $TanggalTransaksi = date("Y-m-d H:i:s");
 
 if(@$_GET['id']!=null){
-	$Edit = mysqli_query($koneksi,"SELECT * FROM trpermohonan WHERE KodeTransaksi='".htmlspecialchars(base64_decode($_GET['id']))."'");
-	$RowData = mysqli_fetch_assoc($Edit);
+	// $Edit = mysqli_query($koneksi,"SELECT * FROM trpermohonan WHERE KodeTransaksi='".htmlspecialchars(base64_decode($_GET['id']))."'");
+	// $RowData = mysqli_fetch_assoc($Edit);
+
+	$id = base64_decode($_GET['id']);
+
+	$query = "SELECT * FROM trpermohonan WHERE KodeTransaksi = ?";
+
+	$stmt = mysqli_prepare($koneksi, $query);
+
+    mysqli_stmt_bind_param($stmt, "s", $id);
+
+    mysqli_stmt_execute($stmt);
+
+    $result = mysqli_stmt_get_result($stmt);
+
+    $RowData = mysqli_fetch_assoc($result);
+
+    mysqli_stmt_close($stmt);
 }
 
 ?>
@@ -198,9 +214,13 @@ if(@$_GET['id']!=null){
 									<div class="col-lg-12" >
 									<?php 
 										if($RowData['Status']=='Belum Dibaca'){
-											mysqli_query($koneksi,"UPDATE trpermohonan SET Status='Terbaca' WHERE KodeTransaksi='".$RowData['KodeTransaksi']."'");
-									
-										} 
+											// mysqli_query($koneksi,"UPDATE trpermohonan SET Status='Terbaca' WHERE KodeTransaksi='".$RowData['KodeTransaksi']."'");
+											$query = "UPDATE trpermohonan SET Status='Terbaca' WHERE KodeTransaksi=?";
+											$stmt = mysqli_prepare($koneksi, $query);
+											mysqli_stmt_bind_param($stmt, "s", $RowData['KodeTransaksi']);
+											mysqli_stmt_execute($stmt);
+											mysqli_stmt_close($stmt);
+										}
 									?>
 										<label>Pengirim</label><br>
 										<?php echo $RowData['NIK']; ?>
@@ -280,9 +300,24 @@ if(@$_GET['id']!=null){
 	<?php 
 		
 	if(base64_decode(@$_GET['aksi'])=='Hapus'){
-		mysqli_query($koneksi,"delete from detiluttp WHERE  KodeTransaksi='".htmlspecialchars(base64_decode($_GET['tr']))."'");
-		$query = mysqli_query($koneksi,"delete from trpermohonan WHERE  KodeTransaksi='".htmlspecialchars(base64_decode($_GET['tr']))."'");
-		if($query){
+		// mysqli_query($koneksi,"delete from detiluttp WHERE  KodeTransaksi='".htmlspecialchars(base64_decode($_GET['tr']))."'");
+		// $query = mysqli_query($koneksi,"delete from trpermohonan WHERE  KodeTransaksi='".htmlspecialchars(base64_decode($_GET['tr']))."'");
+		
+		$decoded_id = base64_decode($_GET['tr']);
+
+		$query_detiluttp = "DELETE FROM detiluttp WHERE KodeTransaksi = ?";
+		$stmt_detiluttp = mysqli_prepare($koneksi, $query_detiluttp);
+		mysqli_stmt_bind_param($stmt_detiluttp, "s", $decoded_id);
+		mysqli_stmt_execute($stmt_detiluttp);
+		mysqli_stmt_close($stmt_detiluttp);
+
+		$query_trpermohonan = "DELETE FROM trpermohonan WHERE KodeTransaksi = ?";
+		$stmt_trpermohonan = mysqli_prepare($koneksi, $query_trpermohonan);
+		mysqli_stmt_bind_param($stmt_trpermohonan, "s", $decoded_id);
+		$cek = mysqli_stmt_execute($stmt_trpermohonan);
+		mysqli_stmt_close($stmt_trpermohonan);
+		
+		if($cek){
 			InsertLog($koneksi, 'Hapus Data', 'Menghapus Pengajuan Tera Ulang', $login_id, base64_decode(@$_GET['tr']), 'Layanan Pengajuan Tera Ulang');
 			echo '<script language="javascript">document.location="PengajuanOnline.php"; </script>';
 		}else{
@@ -300,20 +335,34 @@ if(@$_GET['id']!=null){
 	}
 	
 	function NamaPerson($koneksi, $NIK){
-		$query = "SELECT NamaPerson FROM mstperson where NIK='$NIK'";
-		$conn = mysqli_query($koneksi, $query);
-		$result = mysqli_fetch_array($conn);
-		$NamaPerson = $result['NamaPerson'];
+		// $query = "SELECT NamaPerson FROM mstperson where NIK='$NIK'";
+		// $conn = mysqli_query($koneksi, $query);
+		// $result = mysqli_fetch_array($conn);
+		// $NamaPerson = $result['NamaPerson'];
+		$query = "SELECT NamaPerson FROM mstperson WHERE NIK = ?";
+		$stmt = mysqli_prepare($koneksi, $query);
+		mysqli_stmt_bind_param($stmt, "s", $NIK);
+		mysqli_stmt_execute($stmt);
+		mysqli_stmt_bind_result($stmt, $NamaPerson);
+		mysqli_stmt_fetch($stmt);
+		mysqli_stmt_close($stmt);
 		
 		return $NamaPerson;
 	}
 	function NamaTimbangan($koneksi, $IDTimbangan){
-		$query = "SELECT NamaTimbangan FROM timbanganperson where IDTimbangan='$IDTimbangan'";
-		$conn = mysqli_query($koneksi, $query);
-		$result = mysqli_fetch_array($conn);
-		$NamaPerson = $result['NamaTimbangan'];
+		// $query = "SELECT NamaTimbangan FROM timbanganperson where IDTimbangan='$IDTimbangan'";
+		// $conn = mysqli_query($koneksi, $query);
+		// $result = mysqli_fetch_array($conn);
+		// $NamaPerson = $result['NamaTimbangan'];
+		$query = "SELECT NamaTimbangan FROM timbanganperson WHERE IDTimbangan = ?";
+		$stmt = mysqli_prepare($koneksi, $query);
+		mysqli_stmt_bind_param($stmt, "s", $IDTimbangan);
+		mysqli_stmt_execute($stmt);
+		mysqli_stmt_bind_result($stmt, $NamaTimbangan);
+		mysqli_stmt_fetch($stmt);
+		mysqli_stmt_close($stmt);
 		
-		return $NamaPerson;
+		return $NamaTimbangan;
 	}
 	
 	?>
