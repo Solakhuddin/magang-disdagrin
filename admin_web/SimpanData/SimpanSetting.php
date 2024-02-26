@@ -30,23 +30,37 @@ include ("../../library/config.php");
         }
 
         $newfilename = $id.'-'.date('YmdHis').'-1.'.$file_ext;
-        if (empty($errors) == true) {
-            move_uploaded_file($file_tmp, "../..//images/Assets/" . $newfilename);
-            $Gambar1 = $newfilename;
-            unlink("../../images/Assets/$Gambar1_");
+        if (empty($errors)) {
+            // move_uploaded_file($file_tmp, "../..//images/Assets/" . $newfilename);
+            // $Gambar1 = $newfilename;
+            // unlink("../../images/Assets/$Gambar1_");
+
+            $uploadPath = "../../images/Assets/";
+            $success = move_uploaded_file($file_tmp, $uploadPath . $newfilename);
+            if ($success) {
+                $Gambar1 = $newfilename;
+                unlink("../../images/Assets/$Gambar1_"); // Delete previous file
+            } else {
+                $errors[] = 'Upload failed. Please try again.';
+            }
+
         }
     }else{
     	$Gambar1 = $file;
     }
 	
-	$query = mysqli_query($koneksi,"UPDATE setting SET value='$keterangan', file='$Gambar1' WHERE id='$id'");
+	// $query = mysqli_query($koneksi,"UPDATE setting SET value='$keterangan', file='$Gambar1' WHERE id='$id'");
 	
-	if ($query) {
+    $stmt = mysqli_prepare($koneksi, "UPDATE setting SET value=?, file=? WHERE id=?");
+    mysqli_stmt_bind_param($stmt, "ssi", $keterangan, $Gambar1, $id);
+    $result = mysqli_stmt_execute($stmt);
+	if ($result) {
 		echo '<script language="javascript">alert("Data Berhasil Disimpan !"); document.location="../SistemSetting.php"; </script>';
 		
 	} else {
 		echo '<script language="javascript">alert("Maaf, Data Gagal Disimpan !"); document.location="../SistemSetting.php"; </script>';
 	}
+    mysqli_stmt_close($stmt);
 	
 		
 ?>
