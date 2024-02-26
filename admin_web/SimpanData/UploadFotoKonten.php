@@ -45,7 +45,11 @@ if(isset($_POST)){
 	$ImageSize 		= $_FILES['ImageFile']['size']; // get original image size
 	$TempSrc	 	= $_FILES['ImageFile']['tmp_name']; // Temp name of image file stored in PHP tmp folder
 	$ImageType	 	= $_FILES['ImageFile']['type']; //get file type, returns "image/png", image/jpeg, text/plain etc.
-		
+	$maxFileSize 	= 5 * 1024 * 1024; // 5 MB
+	if ($_FILES['ImageFile']['size'] > $maxFileSize) {
+		die('File size exceeds the maximum allowed limit!');
+	}
+
 	//Let's check allowed $ImageType, we use PHP SWITCH statement here
 	switch(strtolower($ImageType))
 	{ 
@@ -63,7 +67,16 @@ if(isset($_POST)){
 		default:
 			die('Unsupported File!'); //output error and exit
 	}
-	
+
+	// tambahan baru
+	$allowedExtensions = array('png', 'jpg', 'jpeg', 'gif');
+	$allowedMimeTypes = array('image/png', 'image/jpeg', 'image/gif');
+
+	$ImageExt = strtolower(pathinfo($ImageName, PATHINFO_EXTENSION));
+	if (!in_array($ImageExt, $allowedExtensions) || !in_array($ImageType, $allowedMimeTypes)) {
+		die('Unsupported File Type!');
+	}
+
 	//PHP getimagesize() function returns height/width from image file stored in PHP tmp folder.
 	//Get first two values from image, width and height. 
 	//list assign svalues to $CurWidth,$CurHeight
@@ -83,7 +96,7 @@ if(isset($_POST)){
 	//set the Destination Image
 	$thumb_DestRandImageName 	= $DestinationDirectory.$ThumbPrefix.$NewImageName; //Thumbnail name with destination directory
 	$DestRandImageName 			= $DestinationDirectory.$NewImageName; // Image with destination directory
-	
+
 	//Resize image to Specified Size by calling resizeImage function.
 	if(resizeImage($CurWidth,$CurHeight,$BigImageMaxSize,$DestRandImageName,$CreatedImage,$Quality,$ImageType))
 	{
@@ -96,29 +109,51 @@ if(isset($_POST)){
 		if($JenisKonten=='Foto'){
 			
 			//bikin kode untuk detilkonten
-			$AmbilNoUrut=mysqli_query($koneksi,"SELECT MAX(Nourut) as NoSaatIni FROM detailkonten WHERE  KodeKonten='$id' AND JenisKonten='$JenisKonten'");
-			$Data=mysqli_fetch_assoc($AmbilNoUrut);
-			$NoSekarang = $Data['NoSaatIni'];
-			$Urutan = $NoSekarang+1;
+			// $AmbilNoUrut=mysqli_query($koneksi,"SELECT MAX(Nourut) as NoSaatIni FROM detailkonten WHERE  KodeKonten='$id' AND JenisKonten='$JenisKonten'");
+			// $Data=mysqli_fetch_assoc($AmbilNoUrut);
+			// $NoSekarang = $Data['NoSaatIni'];
+			// $Urutan = $NoSekarang+1;
 			
-			// Insert info into database table!
-			$query = mysqli_query($koneksi,"INSERT INTO detailkonten (Nourut,KodeKonten,Dokumen,keterangan,JenisKonten) VALUES ('$Urutan','$id','$NewImageName','$Keterangan','$JenisKonten')");
-			if($query){
+			// // Insert info into database table!
+			// $query = mysqli_query($koneksi,"INSERT INTO detailkonten (Nourut,KodeKonten,Dokumen,keterangan,JenisKonten) VALUES ('$Urutan','$id','$NewImageName','$Keterangan','$JenisKonten')");
+			
+			$stmt_select = mysqli_prepare($koneksi, "SELECT MAX(Nourut) as NoSaatIni FROM detailkonten WHERE KodeKonten=? AND JenisKonten=?");
+			mysqli_stmt_bind_param($stmt_select, "ss", $id, $JenisKonten);
+			mysqli_stmt_execute($stmt_select);
+			mysqli_stmt_bind_result($stmt_select, $NoSaatIni);
+			mysqli_stmt_fetch($stmt_select);
+			mysqli_stmt_close($stmt_select);
+
+			$Urutan = $NoSaatIni + 1;
+
+			$stmt_insert = mysqli_prepare($koneksi, "INSERT INTO detailkonten (Nourut, KodeKonten, Dokumen, keterangan, JenisKonten) VALUES (?, ?, ?, ?, ?)");
+			mysqli_stmt_bind_param($stmt_insert, "issss", $Urutan, $id, $NewImageName, $Keterangan, $JenisKonten);
+			$cek = mysqli_stmt_execute($stmt_insert);
+			mysqli_stmt_close($stmt_insert);
+
+			
+			if($cek){
 				echo '<script language="javascript">alert("Foto Berhasil Disimpan!");document.location="UploadFoto.php?id='.$_GET['id'].'&jns='.base64_encode($JenisKonten).'";location.reload(); </script>';
 			}
 			
 		}elseif($JenisKonten=='Slider'){
-			$AmbilGambar=mysqli_query($koneksi,"SELECT Gambar1 FROM kontenweb WHERE KodeKonten='$id'");
-			$gambar=mysqli_fetch_assoc($AmbilGambar);
-			$gambarLama = $gambar['Gambar1'];
+			$AmbilGambar 	= mysqli_query($koneksi,"SELECT Gambar1 FROM kontenweb WHERE KodeKonten='$id'");
+			$gambar			= mysqli_fetch_assoc($AmbilGambar);
+			$gambarLama 	= $gambar['Gambar1'];
 			
-			if($gambarLama != null OR $gambarLama !=''){
+			if($gambarLama != null OR $gambarLama != ''){
 				
 				// Insert info into database table!
-				$query = mysqli_query($koneksi,"UPDATE kontenweb SET Gambar1='$NewImageName', IsAktif=b'1' WHERE KodeKonten='$id'");
+				// $query = mysqli_query($koneksi,"UPDATE kontenweb SET Gambar1='$NewImageName', IsAktif=b'1' WHERE KodeKonten='$id'");
+
+				$stmt_update = mysqli_prepare($koneksi, "UPDATE kontenweb SET Gambar1=?, IsAktif=b'1' WHERE KodeKonten=?");
+				mysqli_stmt_bind_param($stmt_update, "ss", $NewImageName, $id);
+				$cek = mysqli_stmt_execute($stmt_update);
+				mysqli_stmt_close($stmt_update);
+
 				
 				
-				if($query){
+				if($cek){
 					//hapus gambar lama
 					@unlink("../../images/web_profil/slider/$gambarLama");
 					@unlink("../../images/web_profil/slider/thumb_$gambarLama");
@@ -127,8 +162,14 @@ if(isset($_POST)){
 				}
 			}else{
 				// Insert info into database table!
-				$query = mysqli_query($koneksi,"UPDATE kontenweb SET Gambar1='$NewImageName', IsAktif=b'1' WHERE KodeKonten='$id'");
-				if($query){
+				// $query = mysqli_query($koneksi,"UPDATE kontenweb SET Gambar1='$NewImageName', IsAktif=b'1' WHERE KodeKonten='$id'");
+
+				$stmt_update = mysqli_prepare($koneksi, "UPDATE kontenweb SET Gambar1=?, IsAktif=b'1' WHERE KodeKonten=?");
+				mysqli_stmt_bind_param($stmt_update, "ss", $NewImageName, $id);
+				$cek = mysqli_stmt_execute($stmt_update);
+				mysqli_stmt_close($stmt_update);
+
+				if($cek){
 					echo '<script language="javascript">alert("Foto Berhasil Disimpan!");document.location="MstSlider.php"; </script>';
 				}
 			}		
@@ -136,38 +177,71 @@ if(isset($_POST)){
 		}elseif($JenisKonten=='Artikel'){
 		
 			//bikin kode untuk detilkonten
-			$AmbilNoUrut=mysqli_query($koneksi,"SELECT MAX(Nourut) as NoSaatIni FROM detailkonten WHERE  KodeKonten='$id' AND JenisKonten='$JenisKonten'");
-			$Data=mysqli_fetch_assoc($AmbilNoUrut);
-			$NoSekarang = $Data['NoSaatIni'];
-			$Urutan = $NoSekarang+1;
+			// $AmbilNoUrut=mysqli_query($koneksi,"SELECT MAX(Nourut) as NoSaatIni FROM detailkonten WHERE  KodeKonten='$id' AND JenisKonten='$JenisKonten'");
+			// $Data=mysqli_fetch_assoc($AmbilNoUrut);
+			// $NoSekarang = $Data['NoSaatIni'];
+			// $Urutan = $NoSekarang+1;
 			
-			// Insert info into database table!
-			$query = mysqli_query($koneksi,"INSERT INTO detailkonten (Nourut,KodeKonten,Dokumen,keterangan,JenisKonten) VALUES ('$Urutan','$id','$NewImageName','$Keterangan','$JenisKonten')");
-			if($query){
+			// $query = mysqli_query($koneksi,"INSERT INTO detailkonten (Nourut,KodeKonten,Dokumen,keterangan,JenisKonten) VALUES ('$Urutan','$id','$NewImageName','$Keterangan','$JenisKonten')");
+
+			$stmt_select = mysqli_prepare($koneksi, "SELECT MAX(Nourut) as NoSaatIni FROM detailkonten WHERE KodeKonten=? AND JenisKonten=?");
+			mysqli_stmt_bind_param($stmt_select, "ss", $id, $JenisKonten);
+			mysqli_stmt_execute($stmt_select);
+			mysqli_stmt_bind_result($stmt_select, $NoSaatIni);
+			mysqli_stmt_fetch($stmt_select);
+			mysqli_stmt_close($stmt_select);
+
+			$Urutan = $NoSaatIni + 1;
+
+			$stmt_insert = mysqli_prepare($koneksi, "INSERT INTO detailkonten (Nourut, KodeKonten, Dokumen, keterangan, JenisKonten) VALUES (?, ?, ?, ?, ?)");
+			mysqli_stmt_bind_param($stmt_insert, "issss", $Urutan, $id, $NewImageName, $Keterangan, $JenisKonten);
+			$cek = mysqli_stmt_execute($stmt_insert);
+			mysqli_stmt_close($stmt_insert);
+			
+			if($cek){
 				echo '<script language="javascript">alert("Foto Berhasil Disimpan!");document.location="UploadFoto.php?id='.$_GET['id'].'&jns='.base64_encode($JenisKonten).'";location.reload(); </script>';
 			}
 		
 		}elseif($JenisKonten=='Berita'){
 			
 			//buat kode untuk detail gambar
-			$AmbilNoUrut=mysqli_query($koneksi,"SELECT MAX(Nourut) as NoSaatIni FROM detailkonten WHERE KodeKonten='$id' AND JenisKonten='$JenisKonten'");
-			$Data=mysqli_fetch_assoc($AmbilNoUrut);
-			$NoSekarang = $Data['NoSaatIni'];
-			$Urutan = $NoSekarang+1;
+			// $AmbilNoUrut=mysqli_query($koneksi,"SELECT MAX(Nourut) as NoSaatIni FROM detailkonten WHERE KodeKonten='$id' AND JenisKonten='$JenisKonten'");
+			// $Data=mysqli_fetch_assoc($AmbilNoUrut);
+			// $NoSekarang = $Data['NoSaatIni'];
+			// $Urutan = $NoSekarang+1;
 			
-			// Insert info into database table!
-			$query = mysqli_query($koneksi,"INSERT INTO detailkonten (Nourut,KodeKonten,JenisKonten,Dokumen,keterangan) VALUES ('$Urutan','$id','$JenisKonten','$NewImageName','$Keterangan')");
-				if($query){
-					echo '<script language="javascript">alert("Foto Berhasil Disimpan!");document.location="UploadFoto.php?id='.$_GET['id'].'&jns='.base64_encode($JenisKonten).'";location.reload(); </script>';
-				}else{
-					echo '<script language="javascript">alert("Foto Gagal Disimpan!");document.location="UploadFoto.php?id='.$_GET['id'].'&jns='.base64_encode($JenisKonten).'";location.reload(); </script>';
-						
-				
-				}		
+			// // Insert info into database table!
+			// $query = mysqli_query($koneksi,"INSERT INTO detailkonten (Nourut,KodeKonten,JenisKonten,Dokumen,keterangan) VALUES ('$Urutan','$id','$JenisKonten','$NewImageName','$Keterangan')");
+
+			$stmt_select = mysqli_prepare($koneksi, "SELECT MAX(Nourut) as NoSaatIni FROM detailkonten WHERE KodeKonten=? AND JenisKonten=?");
+			mysqli_stmt_bind_param($stmt_select, "ss", $id, $JenisKonten);
+			mysqli_stmt_execute($stmt_select);
+			mysqli_stmt_bind_result($stmt_select, $NoSaatIni);
+			mysqli_stmt_fetch($stmt_select);
+			mysqli_stmt_close($stmt_select);
+
+			$Urutan = $NoSaatIni + 1;
+
+			$stmt_insert = mysqli_prepare($koneksi, "INSERT INTO detailkonten (Nourut, KodeKonten, JenisKonten, Dokumen, keterangan) VALUES (?, ?, ?, ?, ?)");
+			mysqli_stmt_bind_param($stmt_insert, "issss", $Urutan, $id, $JenisKonten, $NewImageName, $Keterangan);
+			$cek = mysqli_stmt_execute($stmt_insert);
+			mysqli_stmt_close($stmt_insert);
+
+
+			if($cek){
+				echo '<script language="javascript">alert("Foto Berhasil Disimpan!");document.location="UploadFoto.php?id='.$_GET['id'].'&jns='.base64_encode($JenisKonten).'";location.reload(); </script>';
+			}else{
+				echo '<script language="javascript">alert("Foto Gagal Disimpan!");document.location="UploadFoto.php?id='.$_GET['id'].'&jns='.base64_encode($JenisKonten).'";location.reload(); </script>';
+			}		
 		}		
 	}else{
 		die('Resize Error'); //output error
 	}
+	
+	if (!isset($_FILES['ImageFile']) || !is_uploaded_file($_FILES['ImageFile']['tmp_name'])) {
+		die('No file was uploaded or upload process failed!');
+	}
+
 }
 
 
@@ -205,7 +279,13 @@ function resizeImage($CurWidth,$CurHeight,$MaxSize,$DestFolder,$SrcImage,$Qualit
 				return false;
 		}
 	//Destroy image, frees memory	
-	if(is_resource($NewCanves)) {imagedestroy($NewCanves);} 
+	// if(is_resource($NewCanves)) {imagedestroy($NewCanves);}
+	if($NewCanves !== false && is_resource($NewCanves)) {
+		imagedestroy($NewCanves);
+	} else {
+		// Handle the case where image creation failed
+		echo "Image creation failed";
+	} 
 	return true;
 	}
 
@@ -251,7 +331,15 @@ function cropImage($CurWidth,$CurHeight,$iSize,$DestFolder,$SrcImage,$Quality,$I
 				return false;
 		}
 	//Destroy image, frees memory	
-	if(is_resource($NewCanves)) {imagedestroy($NewCanves);} 
+	// if(is_resource($NewCanves)){
+	// 	imagedestroy($NewCanves);
+	// } 
+	if($NewCanves !== false && is_resource($NewCanves)) {
+		imagedestroy($NewCanves);
+	} else {
+		// Handle the case where image creation failed
+		echo "Image creation failed";
+	}
 	return true;
 
 	}
