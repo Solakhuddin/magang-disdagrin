@@ -18,7 +18,8 @@ if (!empty($_FILES['Gambar1']['name'])) {
     $file_tmp = $_FILES['Gambar1']['tmp_name'];
     $file_type = $_FILES['Gambar1']['type'];
     $tmp = explode('.', $_FILES['Gambar1']['name']);
-	$file_ext = end($tmp);
+	// $file_ext = end($tmp);
+    $file_ext = strtolower(end($tmp)); // Get the file extension in lowercase
 
     
 
@@ -33,10 +34,16 @@ if (!empty($_FILES['Gambar1']['name'])) {
     }
 
     $newfilename = 'ast-'.date('YmdHis').'-1.'.$file_ext;
-    if (empty($errors) == true) {
+    if (empty($errors)) {
         move_uploaded_file($_FILES['Gambar1']['tmp_name'], "../../images/Dokumen/".$Folder."/" . $newfilename);
         $Gambar1 = $newfilename;
-        
+        $uploadPath = "../../images/Dokumen/".$Folder."/" . $newfilename;
+        $success = move_uploaded_file($file_tmp, $uploadPath);
+        if ($success) {
+            $Gambar1 = $newfilename;
+        } else {
+            $errors[] = 'Upload failed. Please try again.';
+        }
         // unlink("../../images/Dokument/Unduhan/$Gambar1_");
     }
 
@@ -46,11 +53,14 @@ if (!empty($_FILES['Gambar1']['name'])) {
 
 
 
- $stmt = mysqli_query($koneksi,"INSERT INTO kontenweb (KodeKonten,TanggalKonten,JenisKonten,JudulKonten,IsiKonten,IsAktif,Gambar1) VALUES 
-	 ('$Kode','$TanggalTransaksi','$JenisKonten','$JudulKonten','$IsiKonten',b'1','$Gambar1')");
+    // $stmt = mysqli_query($koneksi,"INSERT INTO kontenweb (KodeKonten,TanggalKonten,JenisKonten,JudulKonten,IsiKonten,IsAktif,Gambar1) VALUES ('$Kode','$TanggalTransaksi','$JenisKonten','$JudulKonten','$IsiKonten',b'1','$Gambar1')");
 
-	if($stmt){
-		
+	// if($stmt){
+    $stmt = mysqli_prepare($koneksi, "INSERT INTO kontenweb (KodeKonten, TanggalKonten, JenisKonten, JudulKonten, IsiKonten, IsAktif, Gambar1) VALUES (?, ?, ?, ?, ?, b'1', ?)");
+    mysqli_stmt_bind_param($stmt, "ssssss", $Kode, $TanggalTransaksi, $JenisKonten, $JudulKonten, $IsiKonten, $Gambar1);
+    $result = mysqli_stmt_execute($stmt);
+
+    if ($result) {
 		if($JenisKonten=='Dokumen'){
 			echo '<script language="javascript">alert("Data berhasil disimpan !"); document.location="../Unduhan.php"; </script>';
 		}else{
@@ -66,4 +76,5 @@ if (!empty($_FILES['Gambar1']['name'])) {
 		}
 	} 
 	
+    mysqli_stmt_close($stmt);
 
