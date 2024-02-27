@@ -149,7 +149,7 @@ if(@$_GET['id']!=null){
 													$cut_text = substr($data['IsiKomentar'], 0, $num_char);
 													$str_num = str_word_count($data['IsiKomentar']);
 													if($str_num >= 10){
-														if ($data['IsiKomentar']{$num_char - 1} != ' ') { // jika huruf ke 50 (50 - 1 karena index dimulai dari 0) buka  spasi
+														if ($data['IsiKomentar'][$num_char - 1] != ' ') { // jika huruf ke 50 (50 - 1 karena index dimulai dari 0) buka  spasi
 														$new_pos = strrpos($cut_text, ' '); // cari posisi spasi, pencarian dari huruf terakhir
 														$cut_text = substr($data['IsiKomentar'], 0, $new_pos);
 														}
@@ -300,9 +300,19 @@ if(@$_GET['id']!=null){
 	//Edit Data	
 		if(isset($_POST['SimpanEdit'])){
 			//update data user login berdasarkan username yng di pilih
-			$query = mysqli_query($koneksi,"UPDATE tanggapankonten SET IsiTanggapan='$IsiTanggapan', UserName='$login_id', TanggalTanggapan='$TglTransaksi' WHERE KodeTanggapan='$KodeTanggapan'");
-			
-			if($query){
+			// $query = mysqli_query($koneksi,"UPDATE tanggapankonten SET IsiTanggapan='$IsiTanggapan', UserName='$login_id', TanggalTanggapan='$TglTransaksi' WHERE KodeTanggapan='$KodeTanggapan'");
+			// Prepare the SQL statement
+			$query = "UPDATE tanggapankonten SET IsiTanggapan=?, UserName=?, TanggalTanggapan=? WHERE KodeTanggapan=?";
+
+			$stmt = mysqli_prepare($koneksi, $query);
+
+			mysqli_stmt_bind_param($stmt, "ssss", $IsiTanggapan, $login_id, $TglTransaksi, $KodeTanggapan);
+
+			$cek = mysqli_stmt_execute($stmt);
+
+			mysqli_stmt_close($stmt);
+
+			if($cek){
 				echo '<script type="text/javascript">
 					  sweetAlert({
 						title: "Simpan Data Berhasil!",
@@ -333,8 +343,19 @@ if(@$_GET['id']!=null){
 			@$JenisKon	 	= htmlspecialchars(base64_decode(@$_GET['jns'])); 
 				
 			//hapus data agenda
-			$hapus = mysqli_query($koneksi,"UPDATE tanggapankonten set IsAktif=b'0' WHERE KodeTanggapan='$IdKomentar' and JenisKonten='$JenisKon'");
-			if($hapus){
+			// $hapus = mysqli_query($koneksi,"UPDATE tanggapankonten set IsAktif=b'0' WHERE KodeTanggapan='$IdKomentar' and JenisKonten='$JenisKon'");
+			// Prepare the SQL statement
+			$query = "UPDATE tanggapankonten SET IsAktif = b'0' WHERE KodeTanggapan = ? AND JenisKonten = ?";
+
+			$stmt = mysqli_prepare($koneksi, $query);
+
+			mysqli_stmt_bind_param($stmt, "ss", $IdKomentar, $JenisKon);
+
+			$cek = mysqli_stmt_execute($stmt);
+
+			mysqli_stmt_close($stmt);
+
+			if($cek){
 				echo '<script language="javascript">document.location="Komentar.php"; </script>';
 			}else{
 				echo '<script language="javascript">alert("Hapus Data Gagal !"); document.location="Komentar.php"; </script>';
@@ -347,8 +368,19 @@ if(@$_GET['id']!=null){
 			@$JenisKon	 	= htmlspecialchars(base64_decode(@$_GET['jns'])); 
 				
 			//hapus data agenda
-			$hapus = mysqli_query($koneksi,"UPDATE tanggapankonten set IsAktif=b'1' WHERE KodeTanggapan='$IdKomentar' and JenisKonten='$JenisKon'");
-			if($hapus){
+			// $hapus = mysqli_query($koneksi,"UPDATE tanggapankonten set IsAktif=b'1' WHERE KodeTanggapan='$IdKomentar' and JenisKonten='$JenisKon'");
+			// Prepare the SQL statement
+			$query = "UPDATE tanggapankonten SET IsAktif = b'1' WHERE KodeTanggapan = ? AND JenisKonten = ?";
+
+			$stmt = mysqli_prepare($koneksi, $query);
+
+			mysqli_stmt_bind_param($stmt, "ss", $IdKomentar, $JenisKon);
+
+			$cek = mysqli_stmt_execute($stmt);
+
+			mysqli_stmt_close($stmt);
+
+			if($cek){
 				echo '<script language="javascript">document.location="Komentar.php"; </script>';
 			}else{
 				echo '<script language="javascript">alert("Hapus Data Gagal !"); document.location="Komentar.php"; </script>';
