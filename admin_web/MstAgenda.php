@@ -10,8 +10,24 @@ if(@$_GET['id']==null){
 	$Sebutan = 'Edit Data';	
 	$Readonly = 'readonly';
 	
-	$Edit = mysqli_query($koneksi,"SELECT * FROM kontenweb WHERE KodeKonten='".base64_decode($_GET['id'])."' AND JenisKonten='Agenda'");
-	$RowData = mysqli_fetch_assoc($Edit);
+	// $Edit = mysqli_query($koneksi,"SELECT * FROM kontenweb WHERE KodeKonten='".base64_decode($_GET['id'])."' AND JenisKonten='Agenda'");
+	// $RowData = mysqli_fetch_assoc($Edit);
+	// Prepare the SQL statement
+	$query = "SELECT * FROM kontenweb WHERE KodeKonten = ? AND JenisKonten = 'Agenda'";
+
+	$stmt = mysqli_prepare($koneksi, $query);
+
+	$id = base64_decode($_GET['id']);
+	mysqli_stmt_bind_param($stmt, "s", $id);
+
+	mysqli_stmt_execute($stmt);
+
+	$result = mysqli_stmt_get_result($stmt);
+
+	$RowData = mysqli_fetch_assoc($result);
+
+	mysqli_stmt_close($stmt);
+
 }
 ?>
 
@@ -269,10 +285,21 @@ if(@$_GET['id']==null){
 			$Kode = KodeKonten($JenisKonten, $koneksi);
 			
 			
-			$simpan = mysqli_query($koneksi,"INSERT INTO kontenweb (KodeKonten,TanggalKonten,JenisKonten,JudulKonten,IsiKonten,username,IsAktif) VALUES 
-			 ('$Kode','$TanggalKonten','$JenisKonten','$JudulKonten','$IsiKonten','$login_id',b'1')");
+			// $simpan = mysqli_query($koneksi,"INSERT INTO kontenweb (KodeKonten,TanggalKonten,JenisKonten,JudulKonten,IsiKonten,username,IsAktif) VALUES 
+			//  ('$Kode','$TanggalKonten','$JenisKonten','$JudulKonten','$IsiKonten','$login_id',b'1')");
 			
-			if($simpan){
+			// Prepare the SQL statement
+			$query = "INSERT INTO kontenweb (KodeKonten, TanggalKonten, JenisKonten, JudulKonten, IsiKonten, username, IsAktif) VALUES (?, ?, ?, ?, ?, ?, b'1')";
+
+			$stmt = mysqli_prepare($koneksi, $query);
+
+			mysqli_stmt_bind_param($stmt, "ssssss", $Kode, $TanggalKonten, $JenisKonten, $JudulKonten, $IsiKonten, $login_id);
+
+			$cek = mysqli_stmt_execute($stmt);
+
+			mysqli_stmt_close($stmt);
+
+			if($cek){
 				echo '<script language="javascript">alert("Data Berhasil Disimpan!");document.location="MstAgenda.php";</script>';
 				
 			}else{
@@ -294,9 +321,19 @@ if(@$_GET['id']==null){
 	//Edit Data	
 		if(isset($_POST['SimpanEdit'])){
 			//update data user login berdasarkan username yng di pilih
-			$query = mysqli_query($koneksi,"UPDATE kontenweb SET IsiKonten='$IsiKonten', JudulKonten='$JudulKonten',TanggalKonten='$TanggalKonten' WHERE KodeKonten='$KodeKonten' AND JenisKonten='Agenda'");
-			
-			if($query){
+			// $query = mysqli_query($koneksi,"UPDATE kontenweb SET IsiKonten='$IsiKonten', JudulKonten='$JudulKonten',TanggalKonten='$TanggalKonten' WHERE KodeKonten='$KodeKonten' AND JenisKonten='Agenda'");
+			// Prepare the SQL statement
+			$query = "UPDATE kontenweb SET IsiKonten=?, JudulKonten=?, TanggalKonten=? WHERE KodeKonten=? AND JenisKonten='Agenda'";
+
+			$stmt = mysqli_prepare($koneksi, $query);
+
+			mysqli_stmt_bind_param($stmt, "ssss", $IsiKonten, $JudulKonten, $TanggalKonten, $KodeKonten);
+
+			$cek = mysqli_stmt_execute($stmt);
+
+			mysqli_stmt_close($stmt);
+
+			if($cek){
 				echo '<script type="text/javascript">
 					  sweetAlert({
 						title: "Edit Data Berhasil!",
@@ -327,8 +364,19 @@ if(@$_GET['id']==null){
 			@$JenisKon	 	= htmlspecialchars(base64_decode(@$_GET['jns'])); 
 				
 			//hapus data agenda
-			$hapus = mysqli_query($koneksi,"DELETE FROM kontenweb WHERE KodeKonten='$IdKonten' and JenisKonten='$JenisKon'");
-			if($hapus){
+			// $hapus = mysqli_query($koneksi,"DELETE FROM kontenweb WHERE KodeKonten='$IdKonten' and JenisKonten='$JenisKon'");
+			// Prepare the SQL statement
+			$query = "DELETE FROM kontenweb WHERE KodeKonten = ? AND JenisKonten = ?";
+
+			$stmt = mysqli_prepare($koneksi, $query);
+
+			mysqli_stmt_bind_param($stmt, "ss", $IdKonten, $JenisKon);
+
+			$cek = mysqli_stmt_execute($stmt);
+
+			mysqli_stmt_close($stmt);
+
+			if($cek){
 				echo '<script language="javascript">document.location="MstAgenda.php"; </script>';
 			}else{
 				echo '<script language="javascript">alert("Hapus Data Gagal !"); document.location="MstAgenda.php"; </script>';
